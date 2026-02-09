@@ -9,7 +9,7 @@ from render_v2_GitHub import render_problem_diagram, render_lecture_visual
 # 1. Page Configuration
 st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wide")
 
-# 2. CSS: UI consistency
+# 2. CSS for UI consistency
 st.markdown("""
     <style>
     div.stButton > button {
@@ -34,7 +34,7 @@ if "grading_data" not in st.session_state: st.session_state.grading_data = {}
 if "user_name" not in st.session_state: st.session_state.user_name = None
 if "lecture_topic" not in st.session_state: st.session_state.lecture_topic = None
 
-# Ensure your load_problems() pulls the new JSON file for Mechanics
+# Correctly load problems using the GitHub specific file name
 PROBLEMS = load_problems()
 
 # --- Page 0: Name Entry ---
@@ -56,19 +56,19 @@ if st.session_state.page == "landing":
     st.title(f"🚀 Welcome, {st.session_state.user_name}!")
     st.info("FE Exam Prep: Strength of Materials | Dr. Dugan Um")
     
-    # Section A: Interactive Lectures (Revised Order)
+    # Section A: Interactive Lectures (Revised Syllabus Order)
     st.markdown("---")
-    st.subheader("💡 Interactive Learning Agents (Syllabus Order)")
+    st.subheader("💡 Interactive Learning Agents")
     col_l1, col_l2, col_l3, col_l4 = st.columns(4)
     lectures = [
         ("Design Properties of Materials", "SM_1"), 
-        ("Direct Stress & Deformation", "SM_2"), 
-        ("Torsional Shear & Deformation", "SM_3"),
-        ("Shearing Force & Bending Moment", "SM_4"),
+        ("Direct Stress, Deformation, and Design", "SM_2"), 
+        ("Torsional Shear Stress and Torsional Deformation", "SM_3"),
+        ("Shearing Forces and Bending Moments in Beams", "SM_4"),
         ("Stress Due to Bending", "SM_5"),
         ("Shearing Stresses in Beams", "SM_6"),
         ("Deflection of Beams", "SM_7"),
-        ("Combined Loading", "SM_8")
+        ("Combined Load", "SM_8")
     ]
     for i, (name, pref) in enumerate(lectures):
         with [col_l1, col_l2, col_l3, col_l4][i % 4]:
@@ -77,12 +77,11 @@ if st.session_state.page == "landing":
                 st.session_state.page = "lecture"
                 st.rerun()
 
-    # Section B: Practice Problems (Revised for Mechanics)
+    # Section B: Practice Problems
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
     categories = {}
     for p in PROBLEMS:
-        # Categorizes based on the new Strength of Materials sections
         cat_main = p.get('category', 'General Review').split(":")[0].strip()
         if cat_main not in categories: categories[cat_main] = []
         categories[cat_main].append(p)
@@ -101,7 +100,7 @@ if st.session_state.page == "landing":
                             st.session_state.page = "chat"
                             st.rerun()
 
-# --- Page 2: Socratic Chat ---
+# --- Page 2: Practice Problem Chat ---
 elif st.session_state.page == "chat":
     prob = st.session_state.current_prob
     p_id = prob['id']
@@ -117,7 +116,7 @@ elif st.session_state.page == "chat":
     with cols[1]:
         st.metric("Variables Found", f"{len(solved)} / {len(prob['targets'])}")
         st.progress(len(solved) / len(prob['targets']) if len(prob['targets']) > 0 else 0)
-        feedback = st.text_area("Notes for Dr. Um:", placeholder="Hardest part of the derivation?")
+        feedback = st.text_area("Notes for Dr. Um:", placeholder="What was the hardest step?")
         if st.button("⬅️ Submit Session", use_container_width=True):
             history_text = ""
             if p_id in st.session_state.chat_sessions:
@@ -128,14 +127,8 @@ elif st.session_state.page == "chat":
             st.session_state.last_report = report
             st.session_state.page = "report_view"; st.rerun()
 
-    st.markdown("---")
-    # Socratic Chat Logic
     if p_id not in st.session_state.chat_sessions:
-        sys_prompt = (
-            f"You are the Strength of Materials Tutor for {st.session_state.user_name} at TAMUCC. "
-            f"Problem: {prob['statement']}. Use LaTeX for all math. "
-            "Help the student identify internal forces and use the FE Reference Handbook formulas."
-        )
+        sys_prompt = f"You are a Strength of Materials Tutor. Problem: {prob['statement']}. Use Socratic method and LaTeX."
         model = get_gemini_model(sys_prompt)
         st.session_state.chat_sessions[p_id] = model.start_chat(history=[])
 
@@ -149,7 +142,7 @@ elif st.session_state.page == "chat":
                 st.session_state.grading_data[p_id]['solved'].add(target)
         st.session_state.chat_sessions[p_id].send_message(user_input); st.rerun()
 
-# --- Page 3: Interactive Lecture ---
+# --- Page 3: Lecture Simulation & Socratic Discussion ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
     st.title(f"🎓 Lab: {topic}")
@@ -157,36 +150,33 @@ elif st.session_state.page == "lecture":
     
     with col_sim:
         params = {}
-        # New Simulation UI Logic for Strength of Materials
-        if "Stress" in topic:
+        if "Stress" in topic or "Properties" in topic:
             params['P'] = st.slider("Force (kN)", 1, 100, 50)
-            params['A'] = st.slider("Area (mm^2)", 100, 1000, 500)
-            st.latex(r"\sigma = \frac{P}{A}")
-        elif "Torsional" in topic:
-            params['T'] = st.slider("Torque (N-m)", 1, 500, 100)
-            params['J'] = st.slider("Polar Inertia (J)", 1, 100, 50)
-            st.latex(r"\tau = \frac{Tc}{J}")
-        
+            params['A'] = st.slider("Area (mm²)", 100, 1000, 500)
         st.image(render_lecture_visual(topic, params))
         if st.button("🏠 Exit to Menu", use_container_width=True):
-            st.session_state.page = "landing"; st.rerun()
+            st.session_state.lecture_session = None; st.session_state.page = "landing"; st.rerun()
 
     with col_chat:
         st.subheader("💬 Socratic Discussion")
-        if "lecture_session" not in st.session_state:
-            model = get_gemini_model(f"You are teaching {topic} at TAMUCC.")
+        if "lecture_session" not in st.session_state or st.session_state.lecture_session is None:
+            # Leading Questions for Socratic Interaction
+            prompts = {
+                "Design Properties of Materials": "Looking at the curve, what happens to the stress-strain relationship after the strain reaches $\epsilon = 0.1$?",
+                "Direct Stress, Deformation, and Design": "If we keep the load constant but double the cross-sectional area, what happens to the internal stress?",
+                "Torsional Shear Stress and Torsional Deformation": "Why is the shear stress $\tau$ always zero at the neutral axis of the shaft?",
+                "Combined Load": "What physical scenario causes Mohr's Circle to intersect the horizontal stress axis?"
+            }
+            initial_question = prompts.get(topic, "How would you describe the relationship shown in this simulation?")
+            
+            sys_msg = f"You are a Professor at TAMUCC teaching {topic}. Use LaTeX and the Socratic method."
+            model = get_gemini_model(sys_msg)
             st.session_state.lecture_session = model.start_chat(history=[])
+            st.session_state.lecture_session.send_message(initial_question)
         
         for msg in st.session_state.lecture_session.history:
             with st.chat_message("assistant" if msg.role == "model" else "user"):
                 st.markdown(msg.parts[0].text)
         
-        if lecture_input := st.chat_input("Discuss the mechanics..."):
+        if lecture_input := st.chat_input("Discuss..."):
             st.session_state.lecture_session.send_message(lecture_input); st.rerun()
-
-# --- Page 4: Report View ---
-elif st.session_state.page == "report_view":
-    st.title("📊 Performance Summary")
-    st.markdown(st.session_state.get("last_report", "No report available."))
-    if st.button("Return to Main Menu"):
-        st.session_state.page = "landing"; st.rerun()
