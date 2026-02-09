@@ -9,7 +9,7 @@ from render_v2_GitHub import render_problem_diagram, render_lecture_visual
 # 1. Page Configuration
 st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wide")
 
-# 2. CSS for UI consistency
+# 2. UI Styling
 st.markdown("""
     <style>
     div.stButton > button {
@@ -35,7 +35,7 @@ if "user_name" not in st.session_state: st.session_state.user_name = None
 if "lecture_topic" not in st.session_state: st.session_state.lecture_topic = None
 if "lecture_session" not in st.session_state: st.session_state.lecture_session = None
 
-# Load Problems from logic module
+# Load Problems
 PROBLEMS = load_problems()
 
 # --- Page 0: Name Entry ---
@@ -80,6 +80,7 @@ if st.session_state.page == "landing":
 
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
+    # Category Grouping Logic
     categories = {}
     for p in PROBLEMS:
         cat_main = p.get('category', 'General Review').split(":")[0].strip()
@@ -123,13 +124,12 @@ elif st.session_state.page == "chat":
                 for msg in st.session_state.chat_sessions[p_id].history:
                     role = "Tutor" if msg.role == "model" else "Student"
                     history_text += f"{role}: {msg.parts[0].text}\n"
-            report = analyze_and_send_report(st.session_state.user_name, prob['category'], history_text + feedback)
+            analyze_and_send_report(st.session_state.user_name, prob['category'], history_text + feedback)
             st.session_state.page = "landing"; st.rerun()
 
     if p_id not in st.session_state.chat_sessions:
         sys_prompt = f"You are a Strength of Materials Tutor. Problem: {prob['statement']}. Use Socratic method and LaTeX."
-        model = get_gemini_model(sys_prompt)
-        st.session_state.chat_sessions[p_id] = model.start_chat(history=[])
+        st.session_state.chat_sessions[p_id] = get_gemini_model(sys_prompt).start_chat(history=[])
 
     for message in st.session_state.chat_sessions[p_id].history:
         with st.chat_message("assistant" if message.role == "model" else "user"):
@@ -147,23 +147,14 @@ elif st.session_state.page == "lecture":
     st.title(f"🎓 Lab: {topic}")
     col_sim, col_chat = st.columns([1, 1])
     
-    # 1. Simulation Controls and Visuals
     with col_sim:
         params = {}
         if "Stress" in topic or "Properties" in topic:
             p_val = st.slider("Force (kN)", 1, 100, 22)
             a_val = st.slider("Area (mm²)", 100, 1000, 817)
-            # Calculated stress: sigma = (P*1000)/A to get MPa (N/mm^2)
-            params = {
-                'P': p_val, 
-                'A': a_val, 
-                'stress': round((p_val * 1000) / a_val, 2)
-            }
+            params = {'P': p_val, 'A': a_val, 'stress': round((p_val * 1000) / a_val, 2)}
         
-        # Display the visual diagram (updates on slider move)
         st.image(render_lecture_visual(topic, params))
-        
-        # Display live digital readout
         if 'stress' in params:
             st.metric("Live Calculated Stress (σ)", f"{params['stress']} MPa")
         
@@ -172,38 +163,32 @@ elif st.session_state.page == "lecture":
             st.session_state.page = "landing"
             st.rerun()
 
-    # 2. Socratic Chat Interface
     with col_chat:
         st.subheader("💬 Socratic Discussion")
+        prompts = {
+            "Design Properties of Materials": "Looking at the curve, what happens to the stress-strain relationship after the strain reaches $\epsilon = 0.1$?",
+            "Direct Stress, Deformation, and Design": "If we keep the load constant but increase the cross-sectional area, what happens to the internal stress?",
+            "Torsional Shear Stress and Torsional Deformation": "Why is the shear stress $\tau$ always zero at the neutral axis of the shaft?",
+            "Combined Load": "What physical scenario causes Mohr's Circle to intersect the horizontal stress axis?"
+        }
+        initial_question = prompts.get(topic, "How would you describe the relationship shown in this simulation?")
+        st.info(f"**Professor's Challenge:** {initial_question}")
         
-        # Initialize Professor Agent if session is new
         if st.session_state.lecture_session is None:
-            prompts = {
-                "Design Properties of Materials": "Looking at the curve, what happens to the stress-strain relationship after the strain reaches $\epsilon = 0.1$?",
-                "Direct Stress, Deformation, and Design": "If we keep the load constant but increase the cross-sectional area, what happens to the internal stress?",
-                "Torsional Shear Stress and Torsional Deformation": "Why is the shear stress $\tau$ always zero at the neutral axis of the shaft?",
-                "Combined Load": "What physical scenario causes Mohr's Circle to intersect the horizontal stress axis?"
-            }
-            initial_question = prompts.get(topic, "How would you describe the relationship shown in this simulation?")
-            
             sys_msg = (f"You are Dr. Dugan Um, a Professor at TAMUCC teaching {topic}. "
-                       "Use LaTeX and the Socratic method. You will receive 'Live Lab Data' in brackets. "
-                       "Use this data to check the student's work based on their specific slider settings.")
-            
-            model = get_gemini_model(sys_msg)
-            st.session_state.lecture_session = model.start_chat(history=[])
-            st.session_state.lecture_session.send_message(initial_question)
-        
-        # Display chat history (filtering out technical background data)
+                       "Use LaTeX and Socratic methods. You will receive 'Live Lab Data' in brackets. "
+                       "Use it to verify student math based on their specific sliders.")
+            st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[])
+
+        # Render conversation (Cleaning out technical brackets from student view)
         for msg in st.session_state.lecture_session.history:
             clean_text = re.sub(r"\[Live Lab Data:.*?\]", "", msg.parts[0].text).strip()
             if clean_text:
                 with st.chat_message("assistant" if msg.role == "model" else "user"):
                     st.markdown(clean_text)
         
-        # Input for Socratic Discussion
         if lecture_input := st.chat_input("Discuss..."):
-            # Injecting current slider values as a hidden context prefix
-            context = f"[Live Lab Data: P={params.get('P', 'N/A')}kN, A={params.get('A', 'N/A')}mm², Stress={params.get('stress', 'N/A')}MPa] "
+            # Inject Live Slider Data for the AI context
+            context = f"[Live Lab Data: P={params.get('P')}kN, A={params.get('A')}mm², Stress={params.get('stress')}MPa] "
             st.session_state.lecture_session.send_message(context + lecture_input)
             st.rerun()
