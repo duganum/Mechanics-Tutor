@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 def get_gemini_model(system_instruction):
-    """Initializes and returns the Gemini 2.0 Flash model."""
+    """Initializes the Gemini 2.0 Flash model using the faculty API key."""
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
@@ -20,17 +20,17 @@ def get_gemini_model(system_instruction):
         return None
 
 def load_problems():
-    """Loads the problem list from the JSON file."""
+    """Loads the FE Exam problem set from the GitHub repository JSON file."""
     try:
-        # Updated to the new Mechanics-focused filename
-        with open('problems.json', 'r') as f:
+        # Path updated to match your specific GitHub filename
+        with open('problems_v2_GitHub.json', 'r') as f:
             return json.load(f)
     except Exception as e:
-        st.error(f"problems.json Load Error: {e}")
+        st.error(f"problems_v2_GitHub.json Load Error: {e}")
         return []
 
 def check_numeric_match(user_val, correct_val, tolerance=0.05):
-    """Checks if numeric input matches within a 5% tolerance."""
+    """Extracts numbers and checks if the student's answer is within a 5% margin."""
     try:
         u_match = re.search(r"[-+]?\d*\.\d+|\d+", str(user_val))
         if not u_match: return False
@@ -43,21 +43,21 @@ def check_numeric_match(user_val, correct_val, tolerance=0.05):
 
 def evaluate_understanding_score(chat_history):
     """
-    Evaluates understanding based on Mechanics of Materials concepts.
-    Focuses on internal forces, stress formulas, and LaTeX rigor.
+    Evaluates the student's understanding (0-10) based on Mechanics of Materials rigor.
+    Requires use of LaTeX and governing equations from the FE Handbook.
     """
     eval_instruction = (
         "You are a strict Engineering Professor at Texas A&M University - Corpus Christi. "
         "Evaluate the student's understanding (0-10) of Strength of Materials based ONLY on chat history.\n\n"
         "STRICT SCORING RUBRIC:\n"
-        "0-3: Irrelevant or non-technical participation.\n"
-        "4-5: Conceptual understanding present, but lacks governing formulas (e.g., $Mc/I$, $VQ/Ib$, $PL/AE$).\n"
-        "6-8: Correctly identifies internal forces (Shear/Moment) and uses proper mechanics equations in LaTeX.\n"
-        "9-10: Complete mastery. Flawless application of FE Reference Handbook formulas and sign conventions.\n\n"
+        "0-3: Poor participation or non-technical answers.\n"
+        "4-5: Good conceptual talk, but lacks governing equations (e.g., $Mc/I$, $VQ/Ib$, $PL/AE$).\n"
+        "6-8: Demonstrates mastery by correctly using relevant mechanics equations in LaTeX notation.\n"
+        "9-10: Complete mastery. Flawless application of mechanics logic and FE Handbook conventions.\n\n"
         "CRITICAL RULES:\n"
-        "1. If the student fails to use governing MECHANICS equations, do NOT exceed 5.\n"
-        "2. Penalize sloppy notation (e.g., 'sigma' or 'P/A') instead of LaTeX ($\sigma$, $\\frac{P}{A}$).\n"
-        "3. Output ONLY the integer score."
+        "1. If the student does not provide specific GOVERNING EQUATIONS, do NOT exceed 5.\n"
+        "2. Penalize sloppy notation (like 'sigma' or 'tau') instead of LaTeX ($\sigma$, $\\tau$).\n"
+        "3. Output ONLY the integer."
     )
     
     model = get_gemini_model(eval_instruction)
@@ -74,27 +74,29 @@ def evaluate_understanding_score(chat_history):
         return 0
 
 def analyze_and_send_report(user_name, topic_title, chat_history):
-    """Analyzes the Mechanics session and emails a report to Dr. Um."""
+    """Generates a pedagogical report and emails it directly to Dr. Dugan Um."""
     
     score = evaluate_understanding_score(chat_history)
     
     report_instruction = (
-        "You are an academic evaluator for Engineering Mechanics. Analyze this session.\n"
+        "You are an academic evaluator. Analyze this engineering mechanics session.\n"
         "Your report must include:\n"
         "1. Session Overview\n"
         f"2. Mechanics Mastery Score: {score}/10\n"
-        "3. FE Exam Readiness: Did the student use proper Handbook formulas and LaTeX?\n"
-        "4. Strengths/Gaps: (e.g., struggles with Mohr's Circle or Shear Diagrams).\n"
-        "5. EXACT student feedback quote."
+        "3. Mathematical Rigor: Assessment of LaTeX and governing equation usage.\n"
+        "4. FE Exam Readiness: Key strengths and conceptual gaps.\n"
+        "5. CRITICAL: Quote the section '--- STUDENT FEEDBACK ---' exactly."
     )
     
     model = get_gemini_model(report_instruction)
     if not model: return "AI Analysis Unavailable"
 
     prompt = (
-        f"Student: {user_name}\nTopic: {topic_title}\nAssigned Score: {score}/10\n\n"
+        f"Student: {user_name}\n"
+        f"Topic: {topic_title}\n"
+        f"Assigned Score: {score}/10\n\n"
         f"DATA:\n{chat_history}\n\n"
-        "Format for Dr. Dugan Um. Use LaTeX for all math."
+        "Format the report professionally for Dr. Dugan Um. Ensure all math uses LaTeX."
     )
     
     try:
@@ -103,7 +105,7 @@ def analyze_and_send_report(user_name, topic_title, chat_history):
     except Exception as e:
         report_text = f"Analysis failed: {str(e)}"
 
-    # Email Logic
+    # Email Integration logic using Streamlit Secrets
     sender = st.secrets["EMAIL_SENDER"]
     password = st.secrets["EMAIL_PASSWORD"] 
     receiver = "dugan.um@gmail.com" 
@@ -111,7 +113,7 @@ def analyze_and_send_report(user_name, topic_title, chat_history):
     msg = MIMEMultipart()
     msg['From'] = sender
     msg['To'] = receiver
-    msg['Subject'] = f"Mech. Tutor ({user_name}): {topic_title} [Score: {score}/10]"
+    msg['Subject'] = f"Mech Tutor ({user_name}): {topic_title} [Score: {score}/10]"
     msg.attach(MIMEText(report_text, 'plain'))
 
     try:
@@ -120,6 +122,6 @@ def analyze_and_send_report(user_name, topic_title, chat_history):
         server.send_message(msg)
         server.quit()
     except Exception:
-        pass # Silent fail for email in local testing
+        pass # Fails silently for local development
     
     return report_text
