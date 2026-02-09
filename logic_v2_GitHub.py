@@ -1,9 +1,10 @@
+import streamlit as st
 import json
 import re
-import google.generativeai as genai
-import streamlit as st
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import numpy as np
+import matplotlib.pyplot as plt
+from logic_v2_GitHub import get_gemini_model, load_problems, check_numeric_match, analyze_and_send_report
+from render_v2_GitHub import render_problem_diagram, render_lecture_visual
 
 def get_gemini_model(sys_prompt):
     """Initializes the AI model using Streamlit secrets."""
@@ -44,4 +45,5 @@ def check_numeric_match(user_input, target_val, tolerance=0.05):
 def analyze_and_send_report(user_name, category, history):
     """Generates a basic session summary."""
     return f"### 📊 Report for {user_name}\n**Topic:** {category}\nSession completed successfully."
+
 
