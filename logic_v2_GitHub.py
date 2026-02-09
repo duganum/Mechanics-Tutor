@@ -22,7 +22,7 @@ def get_gemini_model(system_instruction):
 def load_problems():
     """Loads the FE Exam problem set from the GitHub repository JSON file."""
     try:
-        # Path updated to match your specific GitHub filename
+        # Path updated to match your specific GitHub filename: problems_v2_GitHub.json
         with open('problems_v2_GitHub.json', 'r') as f:
             return json.load(f)
     except Exception as e:
