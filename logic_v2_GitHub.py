@@ -1,81 +1,35 @@
-import streamlit as st
-import google.generativeai as genai
-import json
-import smtplib
-import re
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+with col_chat:
+    st.subheader("💬 Socratic Discussion")
+    
+    # 1. Define topic-specific leading questions
+    prompts = {
+        "Design Properties of Materials": "Looking at the curve, what happens to the stress-strain relationship after the strain reaches $\epsilon = 0.1$?",
+        "Direct Stress, Deformation, and Design": "If we double the area $A$ but keep load $P$ constant, how does the stress change?",
+        "Combined Load": "What physical scenario causes Mohr's Circle to intersect the horizontal axis?"
+    }
+    initial_question = prompts.get(topic, "How would you describe the relationship shown here?")
 
-def get_gemini_model(system_instruction):
-    """Initializes the Gemini 2.0 Flash model using the faculty API key."""
-    try:
-        api_key = st.secrets["GEMINI_API_KEY"]
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel(
-            model_name='models/gemini-2.0-flash', 
-            system_instruction=system_instruction
+    # 2. Display the leading question as a static instruction box (not a chat bubble)
+    st.info(f"**Professor's Challenge:** {initial_question}")
+
+    # 3. Initialize the session ONLY once without sending an initial message
+    if "lecture_session" not in st.session_state or st.session_state.lecture_session is None:
+        sys_msg = (
+            f"You are a Professor at TAMUCC teaching {topic}. "
+            "STRICT RULES: 1. You are a Socratic tutor. 2. Do NOT answer questions yourself. "
+            "3. Wait for the student to provide an analysis. 4. Use LaTeX for math. "
+            f"The student is currently responding to this prompt: {initial_question}"
         )
-    except Exception as e:
-        st.error(f"Gemini Initialization Failed: {e}")
-        return None
+        model = get_gemini_model(sys_msg)
+        st.session_state.lecture_session = model.start_chat(history=[])
 
-def load_problems():
-    """Loads the FE Exam problem set from the specific GitHub JSON file."""
-    try:
-        # Explicitly targeting the filename shown in your repository
-        with open('problems_v2_GitHub.json', 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        st.error(f"problems_v2_GitHub.json Load Error: {e}")
-        return []
+    # 4. Display ONLY actual chat history
+    for msg in st.session_state.lecture_session.history:
+        with st.chat_message("assistant" if msg.role == "model" else "user"):
+            st.markdown(msg.parts[0].text)
 
-def check_numeric_match(user_val, correct_val, tolerance=0.05):
-    """Extracts numbers and checks if the student's answer is within 5%."""
-    try:
-        u_match = re.search(r"[-+]?\d*\.\d+|\d+", str(user_val))
-        if not u_match: return False
-        u = float(u_match.group())
-        c = float(correct_val)
-        if c == 0: return abs(u) < tolerance
-        return abs(u - c) <= abs(tolerance * c)
-    except:
-        return False
-
-def evaluate_understanding_score(chat_history):
-    """Strict evaluation of mechanics mastery using LaTeX and Handbook formulas."""
-    eval_instruction = (
-        "You are a strict Engineering Professor. Evaluate the student (0-10).\n"
-        "STRICT RULE: If the student did not derive or use specific governing equations "
-        "like $Mc/I$ or $PL/AE$ in LaTeX, do NOT exceed a score of 5.\n"
-        "Output ONLY the integer."
-    )
-    model = get_gemini_model(eval_instruction)
-    if not model: return 0
-    try:
-        response = model.generate_content(f"History:\n{chat_history}")
-        score_match = re.search(r"\d+", response.text)
-        return int(score_match.group()) if score_match else 0
-    except:
-        return 0
-
-def analyze_and_send_report(user_name, topic_title, chat_history):
-    """Generates a pedagogical report and emails it to Dr. Dugan Um."""
-    score = evaluate_understanding_score(chat_history)
-    report_instruction = f"Academic report for Dr. Dugan Um. Score: {score}/10. Use LaTeX."
-    model = get_gemini_model(report_instruction)
-    if not model: return "AI Analysis Unavailable"
-    try:
-        report_text = model.generate_content(chat_history).text
-        sender = st.secrets["EMAIL_SENDER"]
-        receiver = "dugan.um@gmail.com" 
-        msg = MIMEMultipart()
-        msg['From'], msg['To'] = sender, receiver
-        msg['Subject'] = f"Mech Tutor: {user_name} - {topic_title} [{score}/10]"
-        msg.attach(MIMEText(report_text, 'plain'))
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.login(sender, st.secrets["EMAIL_PASSWORD"])
-        server.send_message(msg)
-        server.quit()
-        return report_text
-    except:
-        return "Report Generated (Email delivery skipped)."
+    # 5. Handle student input
+    if lecture_input := st.chat_input("Discuss the mechanics..."):
+        # The AI now only speaks AFTER this input is sent
+        st.session_state.lecture_session.send_message(lecture_input)
+        st.rerun()
