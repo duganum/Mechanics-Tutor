@@ -35,7 +35,7 @@ if "user_name" not in st.session_state: st.session_state.user_name = None
 if "lecture_topic" not in st.session_state: st.session_state.lecture_topic = None
 if "lecture_session" not in st.session_state: st.session_state.lecture_session = None
 
-# Correctly load problems using the GitHub specific file name
+# Load Problems
 PROBLEMS = load_problems()
 
 # --- Page 0: Name Entry ---
@@ -75,7 +75,7 @@ if st.session_state.page == "landing":
             if st.button(f"🎓 {name}", key=f"lec_{pref}", use_container_width=True):
                 st.session_state.lecture_topic = name
                 st.session_state.page = "lecture"
-                st.session_state.lecture_session = None # Reset session for new topic
+                st.session_state.lecture_session = None 
                 st.rerun()
 
     st.markdown("---")
@@ -124,8 +124,7 @@ elif st.session_state.page == "chat":
                     role = "Tutor" if msg.role == "model" else "Student"
                     history_text += f"{role}: {msg.parts[0].text}\n"
             report = analyze_and_send_report(st.session_state.user_name, prob['category'], history_text + feedback)
-            st.session_state.last_report = report
-            st.session_state.page = "report_view"; st.rerun()
+            st.session_state.page = "landing"; st.rerun()
 
     if p_id not in st.session_state.chat_sessions:
         sys_prompt = f"You are a Strength of Materials Tutor. Problem: {prob['statement']}. Use Socratic method and LaTeX."
@@ -151,10 +150,16 @@ elif st.session_state.page == "lecture":
     with col_sim:
         params = {}
         if "Stress" in topic or "Properties" in topic:
-            params['P'] = st.slider("Force (kN)", 1, 100, 22)
-            params['A'] = st.slider("Area (mm²)", 100, 1000, 817)
+            p_val = st.slider("Force (kN)", 1, 100, 22)
+            a_val = st.slider("Area (mm²)", 100, 1000, 817)
+            # Calculate stress: sigma = (P*1000)/A to get MPa (N/mm^2)
+            params = {'P': p_val, 'A': a_val, 'stress': round((p_val * 1000) / a_val, 2)}
         
+        # Render diagram with actual calculated stress
         st.image(render_lecture_visual(topic, params))
+        
+        if 'stress' in params:
+            st.metric("Live Calculated Stress (σ)", f"{params['stress']} MPa")
         
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.lecture_session = None
@@ -164,7 +169,6 @@ elif st.session_state.page == "lecture":
     with col_chat:
         st.subheader("💬 Socratic Discussion")
         
-        # 1. Initialize Session if it doesn't exist
         if st.session_state.lecture_session is None:
             prompts = {
                 "Design Properties of Materials": "Looking at the curve, what happens to the stress-strain relationship after the strain reaches $\epsilon = 0.1$?",
@@ -174,28 +178,24 @@ elif st.session_state.page == "lecture":
             }
             initial_question = prompts.get(topic, "How would you describe the relationship shown in this simulation?")
             
-            # System message instructs model to handle the incoming bracketed data
             sys_msg = (f"You are Dr. Dugan Um, a Professor at TAMUCC teaching {topic}. "
-                       "Use LaTeX and the Socratic method. You will receive 'Live Lab Data' in brackets "
-                       "before each student message. Use these values to verify their math and guide them.")
+                       "Use LaTeX and the Socratic method. You will receive 'Live Lab Data' in brackets. "
+                       "Use it to verify student calculations and guide them based on the current sliders.")
             
             model = get_gemini_model(sys_msg)
             st.session_state.lecture_session = model.start_chat(history=[])
             st.session_state.lecture_session.send_message(initial_question)
         
-        # 2. Display History (Filtering out the technical bracket data for the student UI)
+        # Display chat history (clean technical context out of student view)
         for msg in st.session_state.lecture_session.history:
-            display_text = msg.parts[0].text
-            # Clean technical context for student view
-            clean_text = re.sub(r"\[Live Lab Data:.*?\]", "", display_text).strip()
-            
-            if clean_text: # Only display if there's content left
+            clean_text = re.sub(r"\[Live Lab Data:.*?\]", "", msg.parts[0].text).strip()
+            if clean_text:
                 with st.chat_message("assistant" if msg.role == "model" else "user"):
                     st.markdown(clean_text)
         
-        # 3. Handle Input with Context Injection
+        # Student Input
         if lecture_input := st.chat_input("Discuss..."):
-            # Inject current slider state into the model's awareness
-            context_prefix = f"[Live Lab Data: P={params.get('P')}kN, A={params.get('A')}mm²] "
-            st.session_state.lecture_session.send_message(context_prefix + lecture_input)
+            # Injecting Live Data so the AI "sees" the same stress you see on the diagram
+            context = f"[Live Lab Data: P={params.get('P')}kN, A={params.get('A')}mm², Stress={params.get('stress')}MPa] "
+            st.session_state.lecture_session.send_message(context + lecture_input)
             st.rerun()
