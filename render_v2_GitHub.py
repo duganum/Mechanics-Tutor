@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import io
 
 def render_problem_diagram(prob):
@@ -59,3 +60,4 @@ def render_lecture_visual(topic, params):
     plt.close(fig)
     buf.seek(0)
     return buf
+
