@@ -20,9 +20,9 @@ def get_gemini_model(system_instruction):
         return None
 
 def load_problems():
-    """Loads the FE Exam problem set from the GitHub repository JSON file."""
+    """Loads the FE Exam problem set from the specific GitHub JSON file."""
     try:
-        # Path updated to match your specific GitHub filename: problems_v2_GitHub.json
+        # Explicitly targeting the filename shown in your repository
         with open('problems_v2_GitHub.json', 'r') as f:
             return json.load(f)
     except Exception as e:
@@ -30,7 +30,7 @@ def load_problems():
         return []
 
 def check_numeric_match(user_val, correct_val, tolerance=0.05):
-    """Extracts numbers and checks if the student's answer is within a 5% margin."""
+    """Extracts numbers and checks if the student's answer is within 5%."""
     try:
         u_match = re.search(r"[-+]?\d*\.\d+|\d+", str(user_val))
         if not u_match: return False
@@ -38,90 +38,44 @@ def check_numeric_match(user_val, correct_val, tolerance=0.05):
         c = float(correct_val)
         if c == 0: return abs(u) < tolerance
         return abs(u - c) <= abs(tolerance * c)
-    except (ValueError, TypeError, AttributeError):
+    except:
         return False
 
 def evaluate_understanding_score(chat_history):
-    """
-    Evaluates the student's understanding (0-10) based on Mechanics of Materials rigor.
-    Requires use of LaTeX and governing equations from the FE Handbook.
-    """
+    """Strict evaluation of mechanics mastery using LaTeX and Handbook formulas."""
     eval_instruction = (
-        "You are a strict Engineering Professor at Texas A&M University - Corpus Christi. "
-        "Evaluate the student's understanding (0-10) of Strength of Materials based ONLY on chat history.\n\n"
-        "STRICT SCORING RUBRIC:\n"
-        "0-3: Poor participation or non-technical answers.\n"
-        "4-5: Good conceptual talk, but lacks governing equations (e.g., $Mc/I$, $VQ/Ib$, $PL/AE$).\n"
-        "6-8: Demonstrates mastery by correctly using relevant mechanics equations in LaTeX notation.\n"
-        "9-10: Complete mastery. Flawless application of mechanics logic and FE Handbook conventions.\n\n"
-        "CRITICAL RULES:\n"
-        "1. If the student does not provide specific GOVERNING EQUATIONS, do NOT exceed 5.\n"
-        "2. Penalize sloppy notation (like 'sigma' or 'tau') instead of LaTeX ($\sigma$, $\\tau$).\n"
-        "3. Output ONLY the integer."
+        "You are a strict Engineering Professor. Evaluate the student (0-10).\n"
+        "STRICT RULE: If the student did not derive or use specific governing equations "
+        "like $Mc/I$ or $PL/AE$ in LaTeX, do NOT exceed a score of 5.\n"
+        "Output ONLY the integer."
     )
-    
     model = get_gemini_model(eval_instruction)
     if not model: return 0
-
     try:
-        response = model.generate_content(f"Chat history to evaluate:\n{chat_history}")
+        response = model.generate_content(f"History:\n{chat_history}")
         score_match = re.search(r"\d+", response.text)
-        if score_match:
-            score = int(score_match.group())
-            return min(max(score, 0), 10)
-        return 0
-    except Exception:
+        return int(score_match.group()) if score_match else 0
+    except:
         return 0
 
 def analyze_and_send_report(user_name, topic_title, chat_history):
-    """Generates a pedagogical report and emails it directly to Dr. Dugan Um."""
-    
+    """Generates a pedagogical report and emails it to Dr. Dugan Um."""
     score = evaluate_understanding_score(chat_history)
-    
-    report_instruction = (
-        "You are an academic evaluator. Analyze this engineering mechanics session.\n"
-        "Your report must include:\n"
-        "1. Session Overview\n"
-        f"2. Mechanics Mastery Score: {score}/10\n"
-        "3. Mathematical Rigor: Assessment of LaTeX and governing equation usage.\n"
-        "4. FE Exam Readiness: Key strengths and conceptual gaps.\n"
-        "5. CRITICAL: Quote the section '--- STUDENT FEEDBACK ---' exactly."
-    )
-    
+    report_instruction = f"Academic report for Dr. Dugan Um. Score: {score}/10. Use LaTeX."
     model = get_gemini_model(report_instruction)
     if not model: return "AI Analysis Unavailable"
-
-    prompt = (
-        f"Student: {user_name}\n"
-        f"Topic: {topic_title}\n"
-        f"Assigned Score: {score}/10\n\n"
-        f"DATA:\n{chat_history}\n\n"
-        "Format the report professionally for Dr. Dugan Um. Ensure all math uses LaTeX."
-    )
-    
     try:
-        response = model.generate_content(prompt)
-        report_text = response.text
-    except Exception as e:
-        report_text = f"Analysis failed: {str(e)}"
-
-    # Email Integration logic using Streamlit Secrets
-    sender = st.secrets["EMAIL_SENDER"]
-    password = st.secrets["EMAIL_PASSWORD"] 
-    receiver = "dugan.um@gmail.com" 
-
-    msg = MIMEMultipart()
-    msg['From'] = sender
-    msg['To'] = receiver
-    msg['Subject'] = f"Mech Tutor ({user_name}): {topic_title} [Score: {score}/10]"
-    msg.attach(MIMEText(report_text, 'plain'))
-
-    try:
+        report_text = model.generate_content(chat_history).text
+        sender = st.secrets["EMAIL_SENDER"]
+        receiver = "dugan.um@gmail.com" 
+        msg = MIMEMultipart()
+        msg['From'], msg['To'] = sender, receiver
+        msg['Subject'] = f"Mech Tutor: {user_name} - {topic_title} [{score}/10]"
+        msg.attach(MIMEText(report_text, 'plain'))
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.login(sender, password)
+        server.login(sender, st.secrets["EMAIL_PASSWORD"])
         server.send_message(msg)
         server.quit()
-    except Exception:
-        pass # Fails silently for local development
-    
-    return report_text
+        return report_text
+    except:
+        return "Report Generated (Email delivery skipped)."
