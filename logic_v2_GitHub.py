@@ -4,7 +4,6 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 # FIXED: Added logic imports to prevent "load_problems not defined"
-from render_v2_GitHub import render_problem_diagram, render_lecture_visual
 
 # 1. Page Configuration
 st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wide")
@@ -167,4 +166,5 @@ elif st.session_state.page == "report_view":
     st.markdown(st.session_state.get("last_report", "No report available."))
     if st.button("Return to Main Menu"):
         st.session_state.page = "landing"; st.rerun()
+
 
