@@ -4,7 +4,7 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Import custom tools - Ensure these files are in the same folder
+# Import custom tools
 from logic_v2_GitHub import get_gemini_model, load_problems, check_numeric_match, analyze_and_send_report
 from render_v2_GitHub import render_problem_diagram, render_lecture_visual
 
@@ -16,10 +16,7 @@ st.markdown("""
     <style>
     html, body, [class*="st-"] { font-size: 1.1rem; }
     div.stButton > button {
-        height: 65px; 
-        font-size: 1.2rem !important; 
-        font-weight: 700 !important; 
-        transition: all 0.3s ease;
+        height: 65px; font-size: 1.2rem !important; font-weight: 700 !important; 
     }
     .stSlider label { font-size: 1.1rem !important; font-weight: bold; }
     </style>
@@ -27,20 +24,17 @@ st.markdown("""
 
 # 3. Initialize Session State
 if "page" not in st.session_state: st.session_state.page = "landing"
-if "chat_sessions" not in st.session_state: st.session_state.chat_sessions = {}
-if "grading_data" not in st.session_state: st.session_state.grading_data = {}
 if "user_name" not in st.session_state: st.session_state.user_name = None
 if "lecture_topic" not in st.session_state: st.session_state.lecture_topic = None
 if "lecture_session" not in st.session_state: st.session_state.lecture_session = None
 
-# Load Problems from logic module
 PROBLEMS = load_problems()
 
 # --- Page 0: Name Entry ---
 if st.session_state.user_name is None:
     st.title("🛡️ Engineering Mechanics Portal")
     with st.form("name_form"):
-        name_input = st.text_input("Enter your Full Name to begin")
+        name_input = st.text_input("Enter your Full Name")
         if st.form_submit_button("Access Tutor"):
             if name_input.strip():
                 st.session_state.user_name = name_input.strip()
@@ -54,14 +48,10 @@ if st.session_state.page == "landing":
     
     col_l1, col_l2, col_l3, col_l4 = st.columns(4)
     lectures = [
-        ("Design Properties of Materials", "SM_1"), 
-        ("Direct Stress, Deformation, and Design", "SM_2"), 
-        ("Torsional Shear Stress and Torsional Deformation", "SM_3"),
-        ("Shearing Forces and Bending Moments in Beams", "SM_4"),
-        ("Stress Due to Bending", "SM_5"),
-        ("Shearing Stresses in Beams", "SM_6"),
-        ("Deflection of Beams", "SM_7"),
-        ("Combined Load", "SM_8")
+        ("Design Properties of Materials", "SM_1"), ("Direct Stress, Deformation, and Design", "SM_2"), 
+        ("Torsional Shear Stress and Torsional Deformation", "SM_3"), ("Shearing Forces and Bending Moments in Beams", "SM_4"),
+        ("Stress Due to Bending", "SM_5"), ("Shearing Stresses in Beams", "SM_6"),
+        ("Deflection of Beams", "SM_7"), ("Combined Load", "SM_8")
     ]
     for i, (name, pref) in enumerate(lectures):
         with [col_l1, col_l2, col_l3, col_l4][i % 4]:
@@ -71,7 +61,6 @@ if st.session_state.page == "landing":
                 st.session_state.lecture_session = None 
                 st.rerun()
 
-    # Restoration of Review Problems
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
     categories = {}
@@ -87,78 +76,56 @@ if st.session_state.page == "landing":
             for j in range(3):
                 if i + j < len(probs):
                     prob = probs[i + j]
-                    sub_label = prob.get("hw_subtitle", prob.get('id', 'Prob'))
                     with cols[j]:
-                        if st.button(f"**{sub_label}**\n({prob['id']})", key=f"btn_{prob['id']}", use_container_width=True):
+                        if st.button(f"**{prob.get('hw_subtitle', 'Prob')}**\n({prob['id']})", key=f"btn_{prob['id']}", use_container_width=True):
                             st.session_state.current_prob = prob
                             st.session_state.page = "chat"
                             st.rerun()
 
-# --- Page 3: Lecture Simulation & Socratic Discussion ---
+# --- Page 3: Lecture Simulation & Discussion ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
     st.title(f"🎓 Lab: {topic}")
-    
-    # CRITICAL: Define two columns to restore the Chat component side-by-side
     col_sim, col_chat = st.columns([1, 1])
     
     with col_sim:
         params = {}
-        # Dynamic Sliders for Beam Labs
         if "Shearing Forces" in topic:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
-            a_val = st.slider("Beam Cross-Section Area (A) [mm²]", 100, 2000, 817)
-            pos_ratio = l_pos / 1000
-            m_max = p_val * pos_ratio * (1 - pos_ratio)
+            a_val = st.slider("Beam Area (A) [mm²]", 100, 2000, 817)
+            m_max = p_val * (l_pos/1000) * (1 - l_pos/1000)
             params = {'P': p_val, 'L_pos': l_pos, 'A': a_val}
-            st.metric("Max Bending Moment (M_max)", f"{m_max:.2f} kNm")
+            st.metric("Max Bending Moment", f"{m_max:.2f} kNm")
 
         elif "Stress Due to Bending" in topic:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
             s_val = st.slider("Section Modulus (S) [10³ mm³]", 10, 500, 301)
-            pos_ratio = l_pos / 1000
-            m_max = p_val * pos_ratio * (1 - pos_ratio)
+            m_max = p_val * (l_pos/1000) * (1 - l_pos/1000)
             sigma_b = (m_max * 1e6) / (s_val * 1e3)
             params = {'P': p_val, 'L_pos': l_pos, 'S': s_val, 'sigma_b': sigma_b}
-            st.metric("Max Bending Moment (M_max)", f"{m_max:.2f} kNm")
             st.metric("Max Bending Stress (σ)", f"{sigma_b:.2f} MPa")
 
-        else: # Default sliders for Stress/Properties
+        else: # Design Properties / Direct Stress
             p_val = st.slider("Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area (A) [mm²]", 100, 2000, 817)
-            params = {'P': p_val, 'A': a_val, 'stress': round((p_val * 1000) / a_val, 2)}
-            st.metric("Calculated Stress (σ)", f"{params['stress']} MPa")
+            stress = (p_val * 1000) / a_val
+            params = {'P': p_val, 'A': a_val, 'stress': stress}
+            st.metric("Calculated Stress (σ)", f"{stress:.2f} MPa")
 
-        # Call the render function
         st.image(render_lecture_visual(topic, params))
 
-    # RESTORE THE CHAT COLUMN
     with col_chat:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
-        st.markdown("---")
         st.subheader("💬 Socratic Discussion")
-        
         if st.session_state.lecture_session is None:
-            sys_msg = f"You are Professor Dugan Um teaching {topic}. Use LaTeX and Socratic method."
-            st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
-                {"role": "user", "parts": ["Hi Professor."]},
-                {"role": "model", "parts": ["I've set up the lab. Looking at the data, what happens to the internal forces as you move the load?"]}
-            ])
+            sys_msg = f"You are Professor Dugan Um teaching {topic}."
+            st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[])
         
         for msg in st.session_state.lecture_session.history:
-            if msg.parts[0].text == "Hi Professor.": continue
-            with st.chat_message("assistant" if msg.role == "model" else "user"):
-                st.markdown(msg.parts[0].text)
-
-        if lecture_input := st.chat_input("Discuss..."):
-            st.session_state.lecture_session.send_message(lecture_input)
-            st.rerun()
-
-# --- Other Pages (HW Chat, Report, etc.) ---
-elif st.session_state.page == "chat":
-    # (Existing HW Chat logic remains here)
-    pass
+            with st.chat_message(msg.role): st.markdown(msg.parts[0].text)
+        if inp := st.chat_input("Discuss..."):
+            st.session_state.lecture_session.send_message(inp); st.rerun()
