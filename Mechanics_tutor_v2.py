@@ -131,9 +131,13 @@ elif st.session_state.page == "lecture":
             st.rerun()
         st.subheader("💬 Socratic Discussion")
         
+        # FIXED: Initialize with an introductory message from the AI
         if st.session_state.lecture_session is None:
             sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
-            st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[])
+            initial_greeting = f"Welcome to the lab on {topic}. I have initialized the simulation. What observations can you make from the current data?"
+            st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
+                {"role": "model", "parts": [initial_greeting]}
+            ])
         
         # Display existing chat history
         for msg in st.session_state.lecture_session.history:
