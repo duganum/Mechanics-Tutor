@@ -11,13 +11,25 @@ from render_v2_GitHub import render_problem_diagram, render_lecture_visual
 # 1. Page Configuration
 st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wide")
 
-# 2. UI Styling
+# 2. UI Styling: Matched with Dynamics Tutor for Font and Button size
 st.markdown("""
     <style>
+    /* Global font size increase to match Dynamics Tutor */
+    html, body, [class*="st-"] {
+        font-size: 1.1rem;
+    }
+    
+    /* Specific styling for Chat Messages */
+    .stChatMessage {
+        font-size: 1.1rem !important;
+    }
+
+    /* Button Styling: Matched to Dynamics Tutor (60px height) */
     div.stButton > button {
         height: 60px;
         padding: 5px 10px;
-        font-size: 14px;
+        font-size: 16px;
+        font-weight: 600;
         white-space: normal;
         word-wrap: break-word;
         line-height: 1.2;
@@ -25,6 +37,12 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         text-align: center;
+    }
+
+    /* Label font size for sliders and inputs */
+    .stSlider label, .stTextArea label {
+        font-size: 1.1rem !important;
+        font-weight: bold;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -135,19 +153,17 @@ elif st.session_state.page == "chat":
                 st.session_state.page = "report_view"
                 st.rerun()
 
-    # Practice Chat Initialization
     if p_id not in st.session_state.chat_sessions:
         sys_prompt = f"You are a Strength of Materials Tutor. Problem: {prob['statement']}. Use Socratic method and LaTeX."
         model = get_gemini_model(sys_prompt)
-        # Start with a friendly intro in history
+        # Initialize with history to avoid AI talking to itself
         st.session_state.chat_sessions[p_id] = model.start_chat(history=[
-            {"role": "user", "parts": ["Hi Tutor, I'm ready to start."]},
+            {"role": "user", "parts": ["Hi Tutor."]},
             {"role": "model", "parts": ["👋 Ready. Please describe your first step or the governing equations you intend to use."]}
         ])
 
     for message in st.session_state.chat_sessions[p_id].history:
-        # Skip the internal "hi" used for initialization
-        if message.parts[0].text == "Hi Tutor, I'm ready to start.": continue
+        if message.parts[0].text == "Hi Tutor.": continue
         with st.chat_message("assistant" if message.role == "model" else "user"):
             st.markdown(message.parts[0].text)
 
@@ -155,7 +171,6 @@ elif st.session_state.page == "chat":
         for target, val in prob['targets'].items():
             if target not in solved and check_numeric_match(user_input, val):
                 st.session_state.grading_data[p_id]['solved'].add(target)
-        
         try:
             st.session_state.chat_sessions[p_id].send_message(user_input)
             st.rerun()
@@ -205,11 +220,9 @@ elif st.session_state.page == "lecture":
         if st.session_state.lecture_session is None:
             prompts = {"Design Properties of Materials": "Looking at the curve, what happens after the yield point?"}
             initial_question = prompts.get(topic, "How would you describe the relationship shown?")
-            
             sys_msg = f"You are Professor Dugan Um teaching {topic}. Use LaTeX and Socratic method."
             model = get_gemini_model(sys_msg)
             
-            # FIXED: Put initial question in history to avoid AI talking to itself
             initial_history = [
                 {"role": "user", "parts": ["Hi Professor."]},
                 {"role": "model", "parts": [initial_question]}
@@ -219,7 +232,6 @@ elif st.session_state.page == "lecture":
         chat_container = st.container(height=400)
         with chat_container:
             for msg in st.session_state.lecture_session.history:
-                # Filter internal init message and lab data prefixes
                 if msg.parts[0].text == "Hi Professor.": continue
                 clean_text = re.sub(r"\[Live Lab Data:.*?\]", "", msg.parts[0].text).strip()
                 if clean_text:
