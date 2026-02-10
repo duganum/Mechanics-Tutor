@@ -91,7 +91,7 @@ if st.session_state.page == "landing":
                             st.session_state.page = "chat"
                             st.rerun()
 
-# --- Page 3: Lecture Simulation & Socratic Discussion ---
+# --- Page 3: Lecture Simulation & Discussion ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
     lec_id = st.session_state.lecture_id
@@ -99,14 +99,12 @@ elif st.session_state.page == "lecture":
     
     col_sim, col_side = st.columns([1, 1])
     
-    # Left Column: Simulation Parameters and Visuals
+    # Left Column: Simulation
     with col_sim:
         params = {'lec_id': lec_id}
-        
         if lec_id in ["SM_4", "SM_5", "SM_6"]:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
-            
             if lec_id == "SM_5":
                 s_val = st.slider("Section Modulus (S) [10³ mm³]", 10, 500, 301)
                 m_max = p_val * (l_pos/1000) * (1 - l_pos/1000)
@@ -116,8 +114,7 @@ elif st.session_state.page == "lecture":
             else:
                 a_val = st.slider("Beam Area (A) [mm²]", 100, 2000, 817)
                 params.update({'P': p_val, 'L_pos': l_pos, 'A': a_val})
-
-        else: # SM_1, SM_2, SM_3
+        else:
             p_val = st.slider("Magnitude / Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area / Geometry (A) [mm²]", 100, 2000, 817)
             stress = (p_val * 1000) / a_val
@@ -126,41 +123,41 @@ elif st.session_state.page == "lecture":
 
         st.image(render_lecture_visual(topic, params))
 
-    # Right Column: Session Analysis and Navigation (Switched to Top)
+    # Right Column: Session Analysis (Consistent with Dynamics)
     with col_side:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
             
         st.subheader("📝 Session Analysis")
-        st.info("Work through the derivation with the tutor below. Focus on using correct LaTeX notation and physical principles.")
+        st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation and physical principles.")
         
         user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback to your professor...", height=150)
         
         if st.button("⬅️ Submit Session", use_container_width=True):
             if st.session_state.lecture_session:
-                chat_history = [
-                    {"role": m.role, "text": m.parts[0].text} 
-                    for m in st.session_state.lecture_session.history
-                ]
+                # Prepare history as serializable list to prevent TypeError
+                chat_history = [f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history]
                 
                 with st.spinner("Analyzing session and sending report..."):
-                    success = analyze_and_send_report(
-                        user_name=st.session_state.user_name,
-                        topic=topic,
-                        history=chat_history,
-                        feedback=user_feedback,
-                        recipient_email="dugan.um@gmail.com"
-                    )
-                    
-                    if success:
-                        st.success("Report sent successfully! Redirecting to menu...")
-                        st.session_state.page = "landing"
-                        st.rerun()
-                    else:
-                        st.error("Failed to send the report. Please check your connection.")
+                    try:
+                        success = analyze_and_send_report(
+                            user_name=str(st.session_state.user_name),
+                            topic=str(topic),
+                            history=chat_history,
+                            feedback=str(user_feedback),
+                            recipient_email="dugan.um@gmail.com"
+                        )
+                        if success:
+                            st.success("Report sent successfully!")
+                            st.session_state.page = "landing"
+                            st.rerun()
+                        else:
+                            st.error("Submission failed.")
+                    except Exception as e:
+                        st.error(f"Error during submission: {e}")
 
-    # Bottom Full Width: Socratic Discussion (Switched to Bottom)
+    # Bottom Full Width: Socratic Discussion
     st.markdown("---")
     st.subheader("💬 Socratic Discussion")
     
@@ -171,18 +168,14 @@ elif st.session_state.page == "lecture":
             {"role": "model", "parts": [initial_greeting]}
         ])
     
-    # Chat container for history
     chat_container = st.container(height=400)
     with chat_container:
         for msg in st.session_state.lecture_session.history:
             with st.chat_message("assistant" if msg.role == "model" else "user"):
                 st.markdown(msg.parts[0].text)
 
-    # Input form for chat
     with st.form("lecture_chat_form", clear_on_submit=True):
         lecture_input = st.text_input("Discuss the results...", placeholder="Type your observations here...")
-        submit_button = st.form_submit_button("Submit Message")
-        
-        if submit_button and lecture_input:
+        if st.form_submit_button("Submit Message") and lecture_input:
             st.session_state.lecture_session.send_message(lecture_input)
             st.rerun()
