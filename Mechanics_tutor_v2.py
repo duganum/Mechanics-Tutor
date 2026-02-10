@@ -1,97 +1,4 @@
-import streamlit as st
-import json
-import re
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Import custom tools - Ensure these files are in the same folder
-from logic_v2_GitHub import get_gemini_model, load_problems, check_numeric_match, analyze_and_send_report
-from render_v2_GitHub import render_problem_diagram, render_lecture_visual
-
-# 1. Page Configuration
-st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wide")
-
-# 2. UI Styling
-st.markdown("""
-    <style>
-    html, body, [class*="st-"] { font-size: 1.1rem; }
-    div.stButton > button {
-        height: 65px; 
-        font-size: 1.2rem !important; 
-        font-weight: 700 !important; 
-        transition: all 0.3s ease;
-    }
-    .stSlider label { font-size: 1.1rem !important; font-weight: bold; }
-    </style>
-""", unsafe_allow_html=True)
-
-# 3. Initialize Session State
-if "page" not in st.session_state: st.session_state.page = "landing"
-if "user_name" not in st.session_state: st.session_state.user_name = None
-if "lecture_topic" not in st.session_state: st.session_state.lecture_topic = None
-if "lecture_id" not in st.session_state: st.session_state.lecture_id = None
-if "lecture_session" not in st.session_state: st.session_state.lecture_session = None
-
-PROBLEMS = load_problems()
-
-# --- Page 0: Name Entry ---
-if st.session_state.user_name is None:
-    st.title("🛡️ Engineering Mechanics Portal")
-    with st.form("name_form"):
-        name_input = st.text_input("Enter your Full Name to begin")
-        if st.form_submit_button("Access Tutor"):
-            if name_input.strip():
-                st.session_state.user_name = name_input.strip()
-                st.rerun()
-    st.stop()
-
-# --- Page 1: Main Menu ---
-if st.session_state.page == "landing":
-    st.title(f"🚀 Welcome, {st.session_state.user_name}!")
-    st.subheader("💡 Interactive Learning Agents")
-    
-    col_l1, col_l2, col_l3, col_l4 = st.columns(4)
-    lectures = [
-        ("Design Properties of Materials", "SM_1"), 
-        ("Direct Stress, Deformation, and Design", "SM_2"), 
-        ("Torsional Shear Stress and Torsional Deformation", "SM_3"),
-        ("Shearing Forces and Bending Moments in Beams", "SM_4"),
-        ("Stress Due to Bending", "SM_5"),
-        ("Shearing Stresses in Beams", "SM_6"),
-        ("Deflection of Beams", "SM_7"),
-        ("Combined Load", "SM_8")
-    ]
-    for i, (name, pref) in enumerate(lectures):
-        with [col_l1, col_l2, col_l3, col_l4][i % 4]:
-            if st.button(f"🎓 {name}", key=f"lec_{pref}", use_container_width=True):
-                st.session_state.lecture_topic = name
-                st.session_state.lecture_id = pref 
-                st.session_state.page = "lecture"
-                st.session_state.lecture_session = None 
-                st.rerun()
-
-    st.markdown("---")
-    st.subheader("📝 FE Exam Review Problems")
-    categories = {}
-    for p in PROBLEMS:
-        cat_main = p.get('category', 'General Review').split(":")[0].strip()
-        if cat_main not in categories: categories[cat_main] = []
-        categories[cat_main].append(p)
-
-    for cat_name, probs in categories.items():
-        st.markdown(f"#### {cat_name}")
-        for i in range(0, len(probs), 3):
-            cols = st.columns(3)
-            for j in range(3):
-                if i + j < len(probs):
-                    prob = probs[i + j]
-                    with cols[j]:
-                        if st.button(f"**{prob.get('hw_subtitle', 'Prob')}**\n({prob['id']})", key=f"btn_{prob['id']}", use_container_width=True):
-                            st.session_state.current_prob = prob
-                            st.session_state.page = "chat"
-                            st.rerun()
-
-# --- Page 3: Lecture Simulation & Socratic Discussion ---
+# --- Page 3: Lecture Simulation & Discussion Flow Revised ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
     lec_id = st.session_state.lecture_id
@@ -118,60 +25,60 @@ elif st.session_state.page == "lecture":
             p_val = st.slider("Magnitude / Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area / Geometry (A) [mm²]", 100, 2000, 817)
             stress = (p_val * 1000) / a_val
-            # FIX: Ensure calculated stress is added to params for rendering SM_1, SM_2, SM_3
             params.update({'P': p_val, 'A': a_val, 'stress': stress})
             st.metric("Calculated Stress", f"{stress:.2f} MPa")
 
         st.image(render_lecture_visual(topic, params))
 
-    # Right Column: Session Analysis
+    # Right Column: Socratic Discussion (Switched to side)
     with col_side:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
-            
-        st.subheader("📝 Session Analysis")
-        st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation and physical principles.")
-        
-        user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback to your professor...", height=150)
-        
-        if st.button("⬅️ Submit Session", use_container_width=True):
-            if st.session_state.lecture_session:
-                history_text = "\n".join([f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history])
-                full_history_with_feedback = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
-                
-                with st.spinner("Analyzing session and sending report..."):
-                    try:
-                        report = analyze_and_send_report(
-                            user_name=str(st.session_state.user_name),
-                            topic_title=str(topic),
-                            chat_history=full_history_with_feedback
-                        )
-                        st.success("Session Analysis complete and emailed to Dr. Um!")
-                        st.session_state.page = "landing"
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Submission Error: {e}")
 
-    # Bottom Full Width: Socratic Discussion
+        st.subheader("💬 Socratic Discussion")
+        
+        if st.session_state.lecture_session is None:
+            sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
+            initial_greeting = f"Welcome to the lab on {topic}. I have initialized the simulation. What observations can you make from the current data?"
+            st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
+                {"role": "model", "parts": [initial_greeting]}
+            ])
+        
+        # Chat container for history in side column
+        chat_container = st.container(height=450)
+        with chat_container:
+            for msg in st.session_state.lecture_session.history:
+                with st.chat_message("assistant" if msg.role == "model" else "user"):
+                    st.markdown(msg.parts[0].text)
+
+        with st.form("lecture_chat_form", clear_on_submit=True):
+            lecture_input = st.text_input("Discuss results...", placeholder="Type here...")
+            if st.form_submit_button("Submit Message") and lecture_input:
+                st.session_state.lecture_session.send_message(lecture_input)
+                st.rerun()
+
+    # Bottom Full Width: Session Analysis (Switched to bottom)
     st.markdown("---")
-    st.subheader("💬 Socratic Discussion")
+    st.subheader("📝 Session Analysis")
+    st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation and physical principles.")
     
-    if st.session_state.lecture_session is None:
-        sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
-        initial_greeting = f"Welcome to the lab on {topic}. I have initialized the simulation. What observations can you make from the current data?"
-        st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
-            {"role": "model", "parts": [initial_greeting]}
-        ])
+    user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback to your professor...", height=150)
     
-    chat_container = st.container(height=400)
-    with chat_container:
-        for msg in st.session_state.lecture_session.history:
-            with st.chat_message("assistant" if msg.role == "model" else "user"):
-                st.markdown(msg.parts[0].text)
-
-    with st.form("lecture_chat_form", clear_on_submit=True):
-        lecture_input = st.text_input("Discuss the results...", placeholder="Type your observations here...")
-        if st.form_submit_button("Submit Message") and lecture_input:
-            st.session_state.lecture_session.send_message(lecture_input)
-            st.rerun()
+    if st.button("⬅️ Submit Session", use_container_width=True):
+        if st.session_state.lecture_session:
+            history_text = "\n".join([f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history])
+            full_history_with_feedback = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
+            
+            with st.spinner("Analyzing session and sending report..."):
+                try:
+                    report = analyze_and_send_report(
+                        user_name=str(st.session_state.user_name),
+                        topic_title=str(topic),
+                        chat_history=full_history_with_feedback
+                    )
+                    st.success("Session Analysis complete and emailed to Dr. Um!")
+                    st.session_state.page = "landing"
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Submission Error: {e}")
