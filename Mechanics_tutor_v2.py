@@ -131,7 +131,6 @@ elif st.session_state.page == "lecture":
             st.rerun()
         st.subheader("💬 Socratic Discussion")
         
-        # FIXED: Initialize with an introductory message from the AI
         if st.session_state.lecture_session is None:
             sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
             initial_greeting = f"Welcome to the lab on {topic}. I have initialized the simulation. What observations can you make from the current data?"
@@ -139,12 +138,10 @@ elif st.session_state.page == "lecture":
                 {"role": "model", "parts": [initial_greeting]}
             ])
         
-        # Display existing chat history
         for msg in st.session_state.lecture_session.history:
             with st.chat_message("assistant" if msg.role == "model" else "user"):
                 st.markdown(msg.parts[0].text)
 
-        # Revised Chat Input with Submit Button
         with st.form("lecture_chat_form", clear_on_submit=True):
             lecture_input = st.text_input("Discuss the results...", placeholder="Type your observations here...")
             submit_button = st.form_submit_button("Submit Message")
@@ -152,3 +149,35 @@ elif st.session_state.page == "lecture":
             if submit_button and lecture_input:
                 st.session_state.lecture_session.send_message(lecture_input)
                 st.rerun()
+
+    # --- Added Section: Session Analysis & Report ---
+    st.markdown("---")
+    st.subheader("📝 Session Analysis")
+    st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation and physical principles.")
+    
+    with st.container():
+        user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback to your professor...", height=150)
+        
+        if st.button("⬅️ Submit Session", use_container_width=True):
+            if st.session_state.lecture_session:
+                # Prepare history for analysis
+                chat_history = [
+                    {"role": m.role, "text": m.parts[0].text} 
+                    for m in st.session_state.lecture_session.history
+                ]
+                
+                with st.spinner("Analyzing session and sending report..."):
+                    success = analyze_and_send_report(
+                        user_name=st.session_state.user_name,
+                        topic=topic,
+                        history=chat_history,
+                        feedback=user_feedback,
+                        recipient_email="dugan.um@gmail.com"
+                    )
+                    
+                    if success:
+                        st.success("Report sent successfully! Redirecting to menu...")
+                        st.session_state.page = "landing"
+                        st.rerun()
+                    else:
+                        st.error("Failed to send the report. Please check your connection.")
