@@ -21,7 +21,7 @@ def render_lecture_visual(topic, params=None):
         # ax_beam: Physical Beam
         ax_beam.axhline(0, color='grey', lw=6)
         ax_beam.plot([0, L], [0, 0], marker='^', color='green', ms=10, ls='')
-        ax_beam.annotate('', xy=(pos, 0), xytext=(pos, 0.5), arrowprops=dict(arrowstyle='->', color='red', lw=2))
+        ax_beam.annotate('', xy=(pos, 0), xytext=(pos, 0.1), arrowprops=dict(arrowstyle='->', color='red', lw=2))
         ax_beam.set_title("Beam Loading & Support", fontsize=9)
         ax_beam.axis('off')
 
@@ -58,3 +58,4 @@ def render_problem_diagram(prob):
     ax.axis('off')
     buf = io.BytesIO(); fig.savefig(buf, format='png'); plt.close(fig); buf.seek(0)
     return buf
+
