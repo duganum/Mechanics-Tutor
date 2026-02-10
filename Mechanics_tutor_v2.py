@@ -135,22 +135,27 @@ elif st.session_state.page == "chat":
                 st.session_state.page = "report_view"
                 st.rerun()
 
+    # Practice Chat Initialization
     if p_id not in st.session_state.chat_sessions:
         sys_prompt = f"You are a Strength of Materials Tutor. Problem: {prob['statement']}. Use Socratic method and LaTeX."
         model = get_gemini_model(sys_prompt)
-        st.session_state.chat_sessions[p_id] = model.start_chat(history=[])
+        # Start with a friendly intro in history
+        st.session_state.chat_sessions[p_id] = model.start_chat(history=[
+            {"role": "user", "parts": ["Hi Tutor, I'm ready to start."]},
+            {"role": "model", "parts": ["👋 Ready. Please describe your first step or the governing equations you intend to use."]}
+        ])
 
     for message in st.session_state.chat_sessions[p_id].history:
+        # Skip the internal "hi" used for initialization
+        if message.parts[0].text == "Hi Tutor, I'm ready to start.": continue
         with st.chat_message("assistant" if message.role == "model" else "user"):
             st.markdown(message.parts[0].text)
 
     if user_input := st.chat_input("Your analysis..."):
-        # Backend numeric checking
         for target, val in prob['targets'].items():
             if target not in solved and check_numeric_match(user_input, val):
                 st.session_state.grading_data[p_id]['solved'].add(target)
         
-        # RATE LIMIT HANDLING
         try:
             st.session_state.chat_sessions[p_id].send_message(user_input)
             st.rerun()
@@ -175,7 +180,6 @@ elif st.session_state.page == "lecture":
             st.metric("Live Calculated Stress (σ)", f"{params['stress']} MPa")
 
     with col_chat:
-        # Layout consistency: Submission at the top right
         st.subheader("📊 Session Completion")
         lecture_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide a feedback to your professor.", key="lec_feedback")
         if st.button("⬅️ Submit Session", use_container_width=True):
@@ -197,23 +201,26 @@ elif st.session_state.page == "lecture":
 
         st.markdown("---")
 
-        # Discussion at the bottom
         st.subheader("💬 Socratic Discussion")
         if st.session_state.lecture_session is None:
             prompts = {"Design Properties of Materials": "Looking at the curve, what happens after the yield point?"}
             initial_question = prompts.get(topic, "How would you describe the relationship shown?")
+            
             sys_msg = f"You are Professor Dugan Um teaching {topic}. Use LaTeX and Socratic method."
             model = get_gemini_model(sys_msg)
-            st.session_state.lecture_session = model.start_chat(history=[])
             
-            # INITIAL RATE LIMIT HANDLING
-            try:
-                st.session_state.lecture_session.send_message(initial_question)
-            except Exception: pass
+            # FIXED: Put initial question in history to avoid AI talking to itself
+            initial_history = [
+                {"role": "user", "parts": ["Hi Professor."]},
+                {"role": "model", "parts": [initial_question]}
+            ]
+            st.session_state.lecture_session = model.start_chat(history=initial_history)
         
         chat_container = st.container(height=400)
         with chat_container:
             for msg in st.session_state.lecture_session.history:
+                # Filter internal init message and lab data prefixes
+                if msg.parts[0].text == "Hi Professor.": continue
                 clean_text = re.sub(r"\[Live Lab Data:.*?\]", "", msg.parts[0].text).strip()
                 if clean_text:
                     with st.chat_message("assistant" if msg.role == "model" else "user"):
@@ -221,8 +228,6 @@ elif st.session_state.page == "lecture":
         
         if lecture_input := st.chat_input("Discuss..."):
             context = f"[Live Lab Data: P={params.get('P', 'N/A')}kN, A={params.get('A', 'N/A')}mm²] "
-            
-            # RATE LIMIT HANDLING
             try:
                 st.session_state.lecture_session.send_message(context + lecture_input)
                 st.rerun()
@@ -236,5 +241,3 @@ elif st.session_state.page == "report_view":
     if st.button("Return to Main Menu"):
         st.session_state.page = "landing"
         st.rerun()
-
-
