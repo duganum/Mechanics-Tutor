@@ -130,14 +130,21 @@ elif st.session_state.page == "lecture":
             st.session_state.page = "landing"
             st.rerun()
         st.subheader("💬 Socratic Discussion")
+        
         if st.session_state.lecture_session is None:
-            sys_msg = f"You are Professor Dugan Um teaching {topic}."
+            sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
             st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[])
         
+        # Display existing chat history
         for msg in st.session_state.lecture_session.history:
-            with st.chat_message(msg.role):
+            with st.chat_message("assistant" if msg.role == "model" else "user"):
                 st.markdown(msg.parts[0].text)
 
-        if lecture_input := st.chat_input("Discuss the results..."):
-            st.session_state.lecture_session.send_message(lecture_input)
-            st.rerun()
+        # Revised Chat Input with Submit Button
+        with st.form("lecture_chat_form", clear_on_submit=True):
+            lecture_input = st.text_input("Discuss the results...", placeholder="Type your observations here...")
+            submit_button = st.form_submit_button("Submit Message")
+            
+            if submit_button and lecture_input:
+                st.session_state.lecture_session.send_message(lecture_input)
+                st.rerun()
