@@ -48,3 +48,15 @@ def render_lecture_visual(topic, params=None):
     plt.close(fig)
     buf.seek(0)
     return buf
+
+def render_problem_diagram(prob):
+    """Placeholder for problem diagrams."""
+    fig, ax = plt.subplots(figsize=(3, 3))
+    ax.text(0.5, 0.5, f"Diagram for\n{prob.get('id', 'Unknown')}", 
+            ha='center', va='center')
+    ax.axis('off')
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return buf
