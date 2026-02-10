@@ -30,7 +30,7 @@ def render_lecture_visual(topic, params=None):
         plt.tight_layout()
         return save_to_buffer(fig)
 
-    # SM_2: Direct Stress (Updated to show numerical data)
+    # SM_2: Direct Stress (Axial Load Diagram)
     elif lec_id == "SM_2":
         fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
         p_val = params.get('P', 0)
@@ -41,24 +41,46 @@ def render_lecture_visual(topic, params=None):
         
         # Add labels for live data
         ax.text(0.5, 0.5, f"σ = {stress:.2f} MPa", ha='center', va='center', fontweight='bold')
-        ax.annotate(f'P = {p_val} kN', xy=(0.5, 0.8), xytext=(0.5, 0.9),
+        ax.annotate(f'P = {p_val} kN', xy=(0.5, 0.8), xytext=(0.5, 0.95),
                     arrowprops=dict(arrowstyle='<-', color='red', lw=2), ha='center')
         
         ax.set_title("SM_2: Axial Load Diagram", fontsize=9)
         ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
         return save_to_buffer(fig)
 
-    # SM_3: Torsional Shear (Updated to show numerical data)
+    # SM_3: Torsional Shear (Cyan Stress Distribution Diagram)
     elif lec_id == "SM_3":
-        fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
-        p_val = params.get('P', 0) # Used here as Torque/Force reference
-        stress = params.get('stress', 0.0) # Shear stress
+        fig, ax = plt.subplots(figsize=(4, 4), dpi=150)
+        stress = params.get('stress', 0.0)
+        radius, cx, cy = 0.3, 0.5, 0.5
+        cyan_col = '#00bcd4'
         
-        ax.add_patch(plt.Circle((0.5, 0.5), 0.3, color='lightgray', ec='black'))
-        ax.text(0.5, 0.5, f"τ_max = {stress:.2f} MPa", ha='center', va='center', fontweight='bold')
+        # Draw circular cross-section and center lines
+        ax.add_patch(plt.Circle((cx, cy), radius, color='none', ec=cyan_col, lw=2))
+        ax.axhline(cy, color=cyan_col, ls=':', lw=1)
+        ax.axvline(cx, color=cyan_col, ls=':', lw=1)
         
-        ax.set_title("SM_3: Torsional Cross-Section", fontsize=9)
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
+        # Linear shear stress distribution line
+        ax.plot([cx - radius, cx + radius], [cy - 0.15, cy + 0.15], color=cyan_col, lw=2)
+        
+        # Stress distribution vectors (arrows)
+        for i in range(1, 6):
+            d = (radius/5) * i
+            # Right side (upward vectors)
+            ax.annotate('', xy=(cx+d, cy+(0.15/5)*i), xytext=(cx+d, cy), 
+                        arrowprops=dict(arrowstyle='->', color=cyan_col))
+            # Left side (downward vectors)
+            ax.annotate('', xy=(cx-d, cy-(0.15/5)*i), xytext=(cx-d, cy), 
+                        arrowprops=dict(arrowstyle='->', color=cyan_col))
+                        
+        # Labels and Metadata
+        ax.text(cx + radius + 0.05, cy + 0.1, r'$\tau_{max}$', color=cyan_col, fontsize=12)
+        ax.text(cx, cy - radius - 0.1, 'd = 2r', color=cyan_col, ha='center', fontsize=10)
+        ax.text(0.05, 0.95, f"$\tau$ = {stress:.2f} MPa", transform=ax.transAxes, 
+                color=cyan_col, fontweight='bold', fontsize=10)
+        
+        ax.set_title("SM_3: Torsional Stress Distribution", fontsize=9)
+        ax.set_aspect('equal'); ax.axis('off')
         return save_to_buffer(fig)
 
     # SM_4, SM_5, SM_6: Beam Labs
