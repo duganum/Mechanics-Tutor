@@ -123,7 +123,7 @@ elif st.session_state.page == "lecture":
 
         st.image(render_lecture_visual(topic, params))
 
-    # Right Column: Session Analysis (Consistent with Dynamics)
+    # Right Column: Session Analysis
     with col_side:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
@@ -136,14 +136,14 @@ elif st.session_state.page == "lecture":
         
         if st.button("⬅️ Submit Session", use_container_width=True):
             if st.session_state.lecture_session:
-                # Prepare history as serializable list to prevent TypeError
                 chat_history = [f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history]
                 
                 with st.spinner("Analyzing session and sending report..."):
                     try:
+                        # FIXED: Removed 'topic' argument to match function signature in logic_v2_GitHub
+                        # Combined topic into the user_name string for identification
                         success = analyze_and_send_report(
-                            user_name=str(st.session_state.user_name),
-                            topic=str(topic),
+                            user_name=f"{st.session_state.user_name} | Topic: {topic}",
                             history=chat_history,
                             feedback=str(user_feedback),
                             recipient_email="dugan.um@gmail.com"
