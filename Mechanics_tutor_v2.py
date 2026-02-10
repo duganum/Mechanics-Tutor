@@ -11,10 +11,10 @@ from render_v2_GitHub import render_problem_diagram, render_lecture_visual
 # 1. Page Configuration
 st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wide")
 
-# 2. UI Styling: Matched with Dynamics Tutor for Font and Button size
+# 2. UI Styling: Matched with Dynamics Tutor with Enhanced Button Fonts
 st.markdown("""
     <style>
-    /* Global font size increase to match Dynamics Tutor */
+    /* Global font size increase */
     html, body, [class*="st-"] {
         font-size: 1.1rem;
     }
@@ -24,12 +24,12 @@ st.markdown("""
         font-size: 1.1rem !important;
     }
 
-    /* Button Styling: Matched to Dynamics Tutor (60px height) */
+    /* Enhanced Button Styling: 1.2rem Bold */
     div.stButton > button {
-        height: 60px;
+        height: 65px; 
         padding: 5px 10px;
-        font-size: 16px;
-        font-weight: 600;
+        font-size: 1.2rem !important; 
+        font-weight: 700 !important; 
         white-space: normal;
         word-wrap: break-word;
         line-height: 1.2;
@@ -37,6 +37,13 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    /* Button Hover Effect */
+    div.stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
     /* Label font size for sliders and inputs */
@@ -156,7 +163,7 @@ elif st.session_state.page == "chat":
     if p_id not in st.session_state.chat_sessions:
         sys_prompt = f"You are a Strength of Materials Tutor. Problem: {prob['statement']}. Use Socratic method and LaTeX."
         model = get_gemini_model(sys_prompt)
-        # Initialize with history to avoid AI talking to itself
+        # Initialize history to prevent double-chat
         st.session_state.chat_sessions[p_id] = model.start_chat(history=[
             {"role": "user", "parts": ["Hi Tutor."]},
             {"role": "model", "parts": ["👋 Ready. Please describe your first step or the governing equations you intend to use."]}
@@ -223,6 +230,7 @@ elif st.session_state.page == "lecture":
             sys_msg = f"You are Professor Dugan Um teaching {topic}. Use LaTeX and Socratic method."
             model = get_gemini_model(sys_msg)
             
+            # Use history to inject greeting without double-AI call
             initial_history = [
                 {"role": "user", "parts": ["Hi Professor."]},
                 {"role": "model", "parts": [initial_question]}
