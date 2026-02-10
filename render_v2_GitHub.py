@@ -10,22 +10,33 @@ def render_lecture_visual(topic, params=None):
     if lec_id == "SM_1":
         fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
         strain_coords = np.linspace(0, 0.5, 100)
-        # Simplified elastic-plastic curve model
+        # Define the reference blue curve
         stress_coords = np.where(strain_coords < 0.1, strain_coords * 10, 1.0 + (strain_coords - 0.1) * 0.5)
         ax.plot(strain_coords, stress_coords, color='blue', lw=2)
         
-        # Red Dot logic: mapping calculated stress back to strain coordinate
-        curr_s = params.get('stress', 0.0)
-        curr_e = curr_s / 10.0 if curr_s <= 1.0 else 0.1 + (curr_s - 1.0) / 0.5
+        # --- Red Dot Logic ---
+        # Get live stress from params, then scale for the graph (max y-axis is 1.2)
+        curr_s_raw = params.get('stress', 0.0)
+        # Normalize stress to fit graph scale (assume 100 MPa = 1.0 stress unit on graph)
+        curr_s = curr_s_raw / 100.0 
+        
+        # Calculate strain based on the same curve logic
+        if curr_s <= 1.0:
+            curr_e = curr_s / 10.0
+        else:
+            curr_e = 0.1 + (curr_s - 1.0) / 0.5
+            
+        # Draw the tracking red dot if within bounds
         if curr_e <= 0.5: 
             ax.plot(curr_e, curr_s, 'ro', ms=8, label='Current State')
         
-        ax.set_title("SM_1: Stress-Strain Behavior", fontsize=9)
+        ax.set_title(f"{lec_id}: Stress-Strain Behavior", fontsize=9)
         ax.set_xlabel("Strain (ε)"); ax.set_ylabel("Stress (σ)")
-        ax.grid(True, linestyle='--', alpha=0.6); plt.tight_layout()
+        ax.grid(True, linestyle='--', alpha=0.6)
+        plt.tight_layout()
         return save_to_buffer(fig)
 
-    # SM_2: Direct Stress (Axial)
+    # SM_2: Direct Stress
     elif lec_id == "SM_2":
         fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
         ax.add_patch(plt.Rectangle((0.35, 0.2), 0.3, 0.6, color='skyblue', ec='black'))
