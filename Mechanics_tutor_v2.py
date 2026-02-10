@@ -177,7 +177,7 @@ elif st.session_state.page == "lecture":
     with col_chat:
         # Layout consistency: Submission at the top right
         st.subheader("📊 Session Completion")
-        lecture_feedback = st.text_area("Notes for Dr. Um:", placeholder="What was the hardest part?", key="lec_feedback")
+        lecture_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide a feedback to your professor.", key="lec_feedback")
         if st.button("⬅️ Submit Session", use_container_width=True):
             history_text = ""
             if st.session_state.lecture_session:
@@ -236,4 +236,5 @@ elif st.session_state.page == "report_view":
     if st.button("Return to Main Menu"):
         st.session_state.page = "landing"
         st.rerun()
+
 
