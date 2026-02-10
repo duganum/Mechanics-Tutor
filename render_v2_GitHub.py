@@ -6,7 +6,7 @@ def render_lecture_visual(topic, params=None):
     if params is None: params = {}
     lec_id = params.get('lec_id', 'SM_0')
     
-    # SM_1: Design Properties (With Red Tracking Dot)
+    # SM_1: Design Properties (Stress-Strain Curve with tracking dot)
     if lec_id == "SM_1":
         fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
         strain_coords = np.linspace(0, 0.5, 100)
@@ -15,11 +15,7 @@ def render_lecture_visual(topic, params=None):
         
         curr_s_raw = params.get('stress', 0.0)
         curr_s = curr_s_raw / 100.0 
-        
-        if curr_s <= 1.0:
-            curr_e = curr_s / 10.0
-        else:
-            curr_e = 0.1 + (curr_s - 1.0) / 0.5
+        curr_e = curr_s / 10.0 if curr_s <= 1.0 else 0.1 + (curr_s - 1.0) / 0.5
             
         if curr_e <= 0.5: 
             ax.plot(curr_e, curr_s, 'ro', ms=8, label='Current State')
@@ -30,16 +26,16 @@ def render_lecture_visual(topic, params=None):
         plt.tight_layout()
         return save_to_buffer(fig)
 
-    # SM_2: Direct Stress (Axial Load Diagram)
+    # SM_2: Direct Stress (Axial Load Diagram with live text overlays)
     elif lec_id == "SM_2":
         fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
         p_val = params.get('P', 0)
         stress = params.get('stress', 0.0)
         
-        # Draw the member
+        # Member visualization
         ax.add_patch(plt.Rectangle((0.35, 0.2), 0.3, 0.6, color='skyblue', ec='black'))
         
-        # Add labels for live data
+        # Data Labels
         ax.text(0.5, 0.5, f"σ = {stress:.2f} MPa", ha='center', va='center', fontweight='bold')
         ax.annotate(f'P = {p_val} kN', xy=(0.5, 0.8), xytext=(0.5, 0.95),
                     arrowprops=dict(arrowstyle='<-', color='red', lw=2), ha='center')
@@ -48,42 +44,40 @@ def render_lecture_visual(topic, params=None):
         ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
         return save_to_buffer(fig)
 
-    # SM_3: Torsional Shear (Cyan Stress Distribution Diagram)
+    # SM_3: Torsional Shear Stress (High-Fidelity Cyan Distribution Diagram)
     elif lec_id == "SM_3":
         fig, ax = plt.subplots(figsize=(4, 4), dpi=150)
         stress = params.get('stress', 0.0)
         radius, cx, cy = 0.3, 0.5, 0.5
         cyan_col = '#00bcd4'
         
-        # Draw circular cross-section and center lines
+        # Draw circular cross-section and axes
         ax.add_patch(plt.Circle((cx, cy), radius, color='none', ec=cyan_col, lw=2))
         ax.axhline(cy, color=cyan_col, ls=':', lw=1)
         ax.axvline(cx, color=cyan_col, ls=':', lw=1)
         
-        # Linear shear stress distribution line
+        # Linear stress distribution line
         ax.plot([cx - radius, cx + radius], [cy - 0.15, cy + 0.15], color=cyan_col, lw=2)
         
-        # Stress distribution vectors (arrows)
+        # Stress vectors (arrows) representing linear increase from center
         for i in range(1, 6):
             d = (radius/5) * i
-            # Right side (upward vectors)
             ax.annotate('', xy=(cx+d, cy+(0.15/5)*i), xytext=(cx+d, cy), 
-                        arrowprops=dict(arrowstyle='->', color=cyan_col))
-            # Left side (downward vectors)
+                        arrowprops=dict(arrowstyle='->', color=cyan_col, lw=1))
             ax.annotate('', xy=(cx-d, cy-(0.15/5)*i), xytext=(cx-d, cy), 
-                        arrowprops=dict(arrowstyle='->', color=cyan_col))
+                        arrowprops=dict(arrowstyle='->', color=cyan_col, lw=1))
                         
-        # Labels and Metadata
-        ax.text(cx + radius + 0.05, cy + 0.1, r'$\tau_{max}$', color=cyan_col, fontsize=12)
+        # Metadata and live calculated labels
+        ax.text(cx + radius + 0.02, cy + 0.15, r'$\tau_{max}$', color=cyan_col, fontsize=12)
         ax.text(cx, cy - radius - 0.1, 'd = 2r', color=cyan_col, ha='center', fontsize=10)
-        ax.text(0.05, 0.95, f"$\tau$ = {stress:.2f} MPa", transform=ax.transAxes, 
+        ax.text(0.05, 0.95, f"τ_max = {stress:.2f} MPa", transform=ax.transAxes, 
                 color=cyan_col, fontweight='bold', fontsize=10)
         
         ax.set_title("SM_3: Torsional Stress Distribution", fontsize=9)
         ax.set_aspect('equal'); ax.axis('off')
         return save_to_buffer(fig)
 
-    # SM_4, SM_5, SM_6: Beam Labs
+    # SM_4, SM_5, SM_6: Beam Labs (Shear and Moment Diagrams)
     elif lec_id in ["SM_4", "SM_5", "SM_6"]:
         p_val, pos = params.get('P', 22), np.clip(params.get('L_pos', 500) / 1000, 0.05, 0.95)
         sigma_b = params.get('sigma_b')
@@ -110,5 +104,8 @@ def render_problem_diagram(prob):
     return save_to_buffer(fig)
 
 def save_to_buffer(fig):
-    buf = io.BytesIO(); fig.savefig(buf, format='png', bbox_inches='tight'); plt.close(fig); buf.seek(0)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
     return buf
