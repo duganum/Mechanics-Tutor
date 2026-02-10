@@ -121,7 +121,7 @@ elif st.session_state.page == "chat":
     with cols[1]:
         st.markdown("### 📝 Session Analysis")
         st.write("Work through the derivation with the tutor below.")
-        feedback = st.text_area("Notes for Dr. Um:", placeholder="What was the hardest step?")
+        feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide a feedback to your professor.")
         if st.button("⬅️ Submit Session", use_container_width=True):
             history_text = ""
             if p_id in st.session_state.chat_sessions:
@@ -236,3 +236,4 @@ elif st.session_state.page == "report_view":
     if st.button("Return to Main Menu"):
         st.session_state.page = "landing"
         st.rerun()
+
