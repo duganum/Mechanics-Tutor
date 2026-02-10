@@ -97,8 +97,9 @@ elif st.session_state.page == "lecture":
     lec_id = st.session_state.lecture_id
     st.title(f"🎓 Lab: {topic}")
     
-    col_sim, col_chat = st.columns([1, 1])
+    col_sim, col_side = st.columns([1, 1])
     
+    # Left Column: Simulation Parameters and Visuals
     with col_sim:
         params = {'lec_id': lec_id}
         
@@ -125,42 +126,19 @@ elif st.session_state.page == "lecture":
 
         st.image(render_lecture_visual(topic, params))
 
-    with col_chat:
+    # Right Column: Session Analysis and Navigation (Switched to Top)
+    with col_side:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
-        st.subheader("💬 Socratic Discussion")
-        
-        if st.session_state.lecture_session is None:
-            sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
-            initial_greeting = f"Welcome to the lab on {topic}. I have initialized the simulation. What observations can you make from the current data?"
-            st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
-                {"role": "model", "parts": [initial_greeting]}
-            ])
-        
-        for msg in st.session_state.lecture_session.history:
-            with st.chat_message("assistant" if msg.role == "model" else "user"):
-                st.markdown(msg.parts[0].text)
-
-        with st.form("lecture_chat_form", clear_on_submit=True):
-            lecture_input = st.text_input("Discuss the results...", placeholder="Type your observations here...")
-            submit_button = st.form_submit_button("Submit Message")
             
-            if submit_button and lecture_input:
-                st.session_state.lecture_session.send_message(lecture_input)
-                st.rerun()
-
-    # --- Added Section: Session Analysis & Report ---
-    st.markdown("---")
-    st.subheader("📝 Session Analysis")
-    st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation and physical principles.")
-    
-    with st.container():
+        st.subheader("📝 Session Analysis")
+        st.info("Work through the derivation with the tutor below. Focus on using correct LaTeX notation and physical principles.")
+        
         user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback to your professor...", height=150)
         
         if st.button("⬅️ Submit Session", use_container_width=True):
             if st.session_state.lecture_session:
-                # Prepare history for analysis
                 chat_history = [
                     {"role": m.role, "text": m.parts[0].text} 
                     for m in st.session_state.lecture_session.history
@@ -181,3 +159,30 @@ elif st.session_state.page == "lecture":
                         st.rerun()
                     else:
                         st.error("Failed to send the report. Please check your connection.")
+
+    # Bottom Full Width: Socratic Discussion (Switched to Bottom)
+    st.markdown("---")
+    st.subheader("💬 Socratic Discussion")
+    
+    if st.session_state.lecture_session is None:
+        sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
+        initial_greeting = f"Welcome to the lab on {topic}. I have initialized the simulation. What observations can you make from the current data?"
+        st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
+            {"role": "model", "parts": [initial_greeting]}
+        ])
+    
+    # Chat container for history
+    chat_container = st.container(height=400)
+    with chat_container:
+        for msg in st.session_state.lecture_session.history:
+            with st.chat_message("assistant" if msg.role == "model" else "user"):
+                st.markdown(msg.parts[0].text)
+
+    # Input form for chat
+    with st.form("lecture_chat_form", clear_on_submit=True):
+        lecture_input = st.text_input("Discuss the results...", placeholder="Type your observations here...")
+        submit_button = st.form_submit_button("Submit Message")
+        
+        if submit_button and lecture_input:
+            st.session_state.lecture_session.send_message(lecture_input)
+            st.rerun()
