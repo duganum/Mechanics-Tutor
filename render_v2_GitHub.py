@@ -32,10 +32,7 @@ def render_lecture_visual(topic, params=None):
         p_val = params.get('P', 0)
         stress = params.get('stress', 0.0)
         
-        # Member visualization
         ax.add_patch(plt.Rectangle((0.35, 0.2), 0.3, 0.6, color='skyblue', ec='black'))
-        
-        # Data Labels
         ax.text(0.5, 0.5, f"σ = {stress:.2f} MPa", ha='center', va='center', fontweight='bold')
         ax.annotate(f'P = {p_val} kN', xy=(0.5, 0.8), xytext=(0.5, 0.95),
                     arrowprops=dict(arrowstyle='<-', color='red', lw=2), ha='center')
@@ -51,15 +48,11 @@ def render_lecture_visual(topic, params=None):
         radius, cx, cy = 0.3, 0.5, 0.5
         cyan_col = '#00bcd4'
         
-        # Draw circular cross-section and axes
         ax.add_patch(plt.Circle((cx, cy), radius, color='none', ec=cyan_col, lw=2))
         ax.axhline(cy, color=cyan_col, ls=':', lw=1)
         ax.axvline(cx, color=cyan_col, ls=':', lw=1)
-        
-        # Linear stress distribution line
         ax.plot([cx - radius, cx + radius], [cy - 0.15, cy + 0.15], color=cyan_col, lw=2)
         
-        # Stress vectors (arrows) representing linear increase from center
         for i in range(1, 6):
             d = (radius/5) * i
             ax.annotate('', xy=(cx+d, cy+(0.15/5)*i), xytext=(cx+d, cy), 
@@ -67,7 +60,6 @@ def render_lecture_visual(topic, params=None):
             ax.annotate('', xy=(cx-d, cy-(0.15/5)*i), xytext=(cx-d, cy), 
                         arrowprops=dict(arrowstyle='->', color=cyan_col, lw=1))
                         
-        # Metadata and live calculated labels
         ax.text(cx + radius + 0.02, cy + 0.15, r'$\tau_{max}$', color=cyan_col, fontsize=12)
         ax.text(cx, cy - radius - 0.1, 'd = 2r', color=cyan_col, ha='center', fontsize=10)
         ax.text(0.05, 0.95, f"τ_max = {stress:.2f} MPa", transform=ax.transAxes, 
@@ -93,6 +85,38 @@ def render_lecture_visual(topic, params=None):
         
         v_x = np.where(x < pos, r1, -r2); ax_s.fill_between(x, v_x, color='blue', alpha=0.15)
         m_x = np.where(x < pos, r1 * x, r1 * x - p_val * (x - pos)); ax_m.fill_between(x, m_x, color='red', alpha=0.15)
+        
+        plt.tight_layout(); return save_to_buffer(fig)
+
+    # SM_7: Deflection of Beams (Cantilever Beam with Elastic Curve)
+    elif lec_id == "SM_7":
+        p_val = params.get('P', 22)
+        pos = np.clip(params.get('L_pos', 500) / 1000, 0.05, 1.0)
+        L = 1.0
+        x = np.linspace(0, L, 500)
+        
+        fig, (ax_beam, ax_defl) = plt.subplots(2, 1, figsize=(4, 6), dpi=150)
+        
+        # 1. Cantilever Beam Diagram
+        ax_beam.axhline(0, color='grey', lw=8) 
+        ax_beam.axvline(0, color='black', lw=10) # Fixed Support
+        ax_beam.annotate('', xy=(pos, 0), xytext=(pos, 0.3), 
+                         arrowprops=dict(arrowstyle='->', color='red', lw=2))
+        ax_beam.text(pos, 0.35, f"P={p_val}kN", color='red', ha='center', fontweight='bold')
+        ax_beam.set_title("Cantilever Beam: Load Application", fontsize=9)
+        ax_beam.set_xlim(-0.1, 1.1); ax_beam.set_ylim(-0.2, 0.5); ax_beam.axis('off')
+        
+        # 2. Deflection Curve (Qualitative Cubic Shape)
+        # v = -P*x^2 * (3*pos - x) / (6*E*I) for x <= pos
+        defl_curve = np.where(x <= pos, 
+                              -(p_val * x**2 * (3*pos - x)), 
+                              -(p_val * pos**2 * (3*x - pos)))
+        
+        ax_defl.plot(x, defl_curve, color='blue', lw=2, ls='--')
+        ax_defl.axhline(0, color='grey', alpha=0.3)
+        ax_defl.axvline(0, color='black', lw=4) # Support line
+        ax_defl.set_title("Relative Deflection Curve", fontsize=9)
+        ax_defl.set_xlim(-0.1, 1.1); ax_defl.axis('off')
         
         plt.tight_layout(); return save_to_buffer(fig)
 
