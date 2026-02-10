@@ -4,14 +4,14 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Import custom tools - Ensure these files are in the same folder
+# Import custom tools
 from logic_v2_GitHub import get_gemini_model, load_problems, check_numeric_match, analyze_and_send_report
 from render_v2_GitHub import render_problem_diagram, render_lecture_visual
 
 # 1. Page Configuration
 st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wide")
 
-# 2. UI Styling: Enhanced fonts for readability
+# 2. UI Styling
 st.markdown("""
     <style>
     html, body, [class*="st-"] { font-size: 1.1rem; }
@@ -27,19 +27,14 @@ st.markdown("""
 
 # 3. Initialize Session State
 if "page" not in st.session_state: st.session_state.page = "landing"
-if "chat_sessions" not in st.session_state: st.session_state.chat_sessions = {}
-if "grading_data" not in st.session_state: st.session_state.grading_data = {}
 if "user_name" not in st.session_state: st.session_state.user_name = None
 if "lecture_topic" not in st.session_state: st.session_state.lecture_topic = None
-if "lecture_session" not in st.session_state: st.session_state.lecture_session = None
 
-# Load Problems from logic module
 PROBLEMS = load_problems()
 
 # --- Page 0: Name Entry ---
 if st.session_state.user_name is None:
     st.title("🛡️ Engineering Mechanics Portal")
-    st.markdown("### Texas A&M University - Corpus Christi")
     with st.form("name_form"):
         name_input = st.text_input("Enter your Full Name to begin")
         if st.form_submit_button("Access Tutor"):
@@ -53,7 +48,6 @@ if st.session_state.page == "landing":
     st.title(f"🚀 Welcome, {st.session_state.user_name}!")
     st.subheader("💡 Interactive Learning Agents")
     
-    # Grid for the 8 Lecture topics
     col_l1, col_l2, col_l3, col_l4 = st.columns(4)
     lectures = [
         ("Design Properties of Materials", "SM_1"), 
@@ -70,10 +64,9 @@ if st.session_state.page == "landing":
             if st.button(f"🎓 {name}", key=f"lec_{pref}", use_container_width=True):
                 st.session_state.lecture_topic = name
                 st.session_state.page = "lecture"
-                st.session_state.lecture_session = None 
                 st.rerun()
 
-    # Restoration of Review Problems section
+    # Restoration of Review Problems
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
     categories = {}
@@ -96,7 +89,7 @@ if st.session_state.page == "landing":
                             st.session_state.page = "chat"
                             st.rerun()
 
-# --- Page 3: Lecture Simulation & Socratic Discussion ---
+# --- Page 3: Lecture Simulation ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
     st.title(f"🎓 Lab: {topic}")
@@ -104,8 +97,7 @@ elif st.session_state.page == "lecture":
     
     with col_sim:
         params = {}
-        
-        # 1. Logic for "Shearing Forces and Bending Moments"
+        # Specialized logic for Shearing Forces vs Bending Stress
         if "Shearing Forces" in topic:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
@@ -114,10 +106,8 @@ elif st.session_state.page == "lecture":
             pos_ratio = l_pos / 1000
             m_max = p_val * pos_ratio * (1 - pos_ratio)
             params = {'P': p_val, 'L_pos': l_pos, 'A': a_val}
-            
             st.metric("Max Bending Moment (M_max)", f"{m_max:.2f} kNm")
 
-        # 2. Logic for "Stress Due to Bending"
         elif "Stress Due to Bending" in topic:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
@@ -131,8 +121,7 @@ elif st.session_state.page == "lecture":
             st.metric("Max Bending Moment (M_max)", f"{m_max:.2f} kNm")
             st.metric("Max Bending Stress (σ)", f"{sigma_b:.2f} MPa")
 
-        # 3. Default fallback for other topics
-        else:
+        else: # Fallback for other topics
             p_val = st.slider("Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area (A) [mm²]", 100, 1000, 817)
             params = {'P': p_val, 'A': a_val, 'stress': round((p_val * 1000) / a_val, 2)}
@@ -144,6 +133,3 @@ elif st.session_state.page == "lecture":
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
-        st.markdown("---")
-        st.subheader("💬 Socratic Discussion")
-        # (Remaining chat logic for lecture discussion)
