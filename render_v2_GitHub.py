@@ -8,11 +8,12 @@ def render_lecture_visual(topic, params=None):
     fig, ax = plt.subplots(figsize=(3, 3), dpi=150)
     if params is None: params = {}
     
+    # Standard grid and axis setup
     ax.axhline(0, color='black', lw=1.0, zorder=2)
     ax.axvline(0, color='black', lw=1.0, zorder=2)
     ax.grid(True, linestyle=':', alpha=0.6)
     
-    # Topic: Design Properties of Materials
+    # --- Topic 1: Design Properties of Materials ---
     if topic == "Design Properties of Materials":
         # Generate standard stress-strain curve data
         strain_elastic = np.linspace(0, 0.05, 50)
@@ -42,6 +43,30 @@ def render_lecture_visual(topic, params=None):
         ax.set_title("Stress-Strain Curve", fontsize=9)
         ax.set_xlim(0, 0.6); ax.set_ylim(0, 400)
 
+    # --- Topic 2: Direct Stress, Deformation, and Design ---
+    elif topic == "Direct Stress, Deformation, and Design":
+        p_val = params.get('P', 22)
+        a_val = params.get('A', 817)
+        stress = params.get('stress', round((p_val * 1000) / a_val, 2))
+
+        # Draw a bar representation
+        # Rectangle centered at x=0.5
+        ax.add_patch(plt.Rectangle((0.35, 0.2), 0.3, 0.6, color='skyblue', alpha=0.6, ec='black', lw=1))
+        
+        # Draw tensile force arrows
+        ax.annotate('', xy=(0.5, 0.95), xytext=(0.5, 0.8), arrowprops=dict(arrowstyle='->', lw=2, color='red'))
+        ax.annotate('', xy=(0.5, 0.05), xytext=(0.5, 0.2), arrowprops=dict(arrowstyle='->', lw=2, color='red'))
+
+        # Add data labels
+        ax.text(0.5, 0.98, f'P = {p_val} kN', ha='center', color='red', fontsize=8, weight='bold')
+        ax.text(0.5, 0.5, f'σ = {stress} MPa\nA = {a_val} mm²', ha='center', va='center', 
+                fontsize=8, bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1.1)
+        ax.set_title("Direct Stress Analysis", fontsize=9)
+        ax.axis('off') # Hide axes for a cleaner "diagram" look
+
     plt.tight_layout()
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight')
@@ -53,7 +78,7 @@ def render_problem_diagram(prob):
     """Placeholder for problem diagrams."""
     fig, ax = plt.subplots(figsize=(3, 3))
     ax.text(0.5, 0.5, f"Diagram for\n{prob.get('id', 'Unknown')}", 
-            ha='center', va='center')
+            ha='center', va='center', weight='bold')
     ax.axis('off')
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
