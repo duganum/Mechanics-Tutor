@@ -118,12 +118,13 @@ elif st.session_state.page == "lecture":
             p_val = st.slider("Magnitude / Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area / Geometry (A) [mm²]", 100, 2000, 817)
             stress = (p_val * 1000) / a_val
+            # FIX: Ensure calculated stress is added to params for rendering SM_1, SM_2, SM_3
             params.update({'P': p_val, 'A': a_val, 'stress': stress})
             st.metric("Calculated Stress", f"{stress:.2f} MPa")
 
         st.image(render_lecture_visual(topic, params))
 
-    # Right Column: Session Analysis (Matches Dynamics Tutor Layout)
+    # Right Column: Session Analysis
     with col_side:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
@@ -136,14 +137,11 @@ elif st.session_state.page == "lecture":
         
         if st.button("⬅️ Submit Session", use_container_width=True):
             if st.session_state.lecture_session:
-                # Format history as a single string for AI evaluation
                 history_text = "\n".join([f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history])
-                # Append student feedback for the AI to include in the report logic
                 full_history_with_feedback = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
                 
                 with st.spinner("Analyzing session and sending report..."):
                     try:
-                        # Logic fixed to match logic_v2_GitHub: analyze_and_send_report(user_name, topic_title, chat_history)
                         report = analyze_and_send_report(
                             user_name=str(st.session_state.user_name),
                             topic_title=str(topic),
