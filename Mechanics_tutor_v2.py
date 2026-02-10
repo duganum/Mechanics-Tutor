@@ -93,13 +93,12 @@ if st.session_state.page == "landing":
 
 # --- Page 2: Problem Solving Chat ---
 elif st.session_state.page == "chat":
-    # (Placeholder for your existing Problem Solving Logic)
     st.write("Problem solving mode...")
     if st.button("Back to Menu"):
         st.session_state.page = "landing"
         st.rerun()
 
-# --- Page 3: Lecture Simulation & Discussion Flow Revised ---
+# --- Page 3: Lecture Simulation & Discussion Flow ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
     lec_id = st.session_state.lecture_id
@@ -107,7 +106,7 @@ elif st.session_state.page == "lecture":
     
     col_sim, col_side = st.columns([1, 1])
     
-    # Left Column: Simulation Parameters and Visuals
+    # Left Column: Simulation
     with col_sim:
         params = {'lec_id': lec_id}
         if lec_id in ["SM_4", "SM_5", "SM_6"]:
@@ -131,22 +130,20 @@ elif st.session_state.page == "lecture":
 
         st.image(render_lecture_visual(topic, params))
 
-    # Right Column: Socratic Discussion (Switched to side)
+    # Right Column: Discussion
     with col_side:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
 
         st.subheader("💬 Socratic Discussion")
-        
         if st.session_state.lecture_session is None:
             sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
-            initial_greeting = f"Welcome to the lab on {topic}. I have initialized the simulation. What observations can you make from the current data?"
+            initial_greeting = f"Welcome to the lab on {topic}. I have initialized the simulation. What observations can you make?"
             st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
                 {"role": "model", "parts": [initial_greeting]}
             ])
         
-        # Chat container for history in side column
         chat_container = st.container(height=450)
         with chat_container:
             for msg in st.session_state.lecture_session.history:
@@ -159,27 +156,25 @@ elif st.session_state.page == "lecture":
                 st.session_state.lecture_session.send_message(lecture_input)
                 st.rerun()
 
-    # Bottom Full Width: Session Analysis (Switched to bottom)
+    # Bottom Full Width: Analysis
     st.markdown("---")
     st.subheader("📝 Session Analysis")
-    st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation and physical principles.")
-    
-    user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback to your professor...", height=150)
+    st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation.")
+    user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback...", height=150)
     
     if st.button("⬅️ Submit Session", use_container_width=True):
         if st.session_state.lecture_session:
             history_text = "\n".join([f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history])
-            full_history_with_feedback = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
-            
-            with st.spinner("Analyzing session and sending report..."):
+            full_history = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
+            with st.spinner("Analyzing session..."):
                 try:
                     report = analyze_and_send_report(
                         user_name=str(st.session_state.user_name),
                         topic_title=str(topic),
-                        chat_history=full_history_with_feedback
+                        chat_history=full_history
                     )
-                    st.success("Session Analysis complete and emailed to Dr. Um!")
+                    st.success("Analysis emailed to Dr. Um!")
                     st.session_state.page = "landing"
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Submission Error: {e}")
+                    st.error(f"Error: {e}")
