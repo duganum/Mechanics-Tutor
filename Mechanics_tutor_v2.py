@@ -113,11 +113,14 @@ elif st.session_state.page == "chat":
     with cols[0]:
         st.subheader(f"📌 {prob['category']}")
         st.info(prob['statement'])
-        st.image(render_problem_diagram(prob), width=400)
+        try:
+            st.image(render_problem_diagram(prob), width=400)
+        except Exception:
+            st.error("Diagram unavailable.")
     
     with cols[1]:
-        st.metric("Variables Found", f"{len(solved)} / {len(prob['targets'])}")
-        st.progress(len(solved) / len(prob['targets']) if len(prob['targets']) > 0 else 0)
+        st.markdown("### 📝 Session Analysis")
+        st.write("Work through the derivation with the tutor below.")
         feedback = st.text_area("Notes for Dr. Um:", placeholder="What was the hardest step?")
         if st.button("⬅️ Submit Session", use_container_width=True):
             history_text = ""
@@ -125,8 +128,12 @@ elif st.session_state.page == "chat":
                 for msg in st.session_state.chat_sessions[p_id].history:
                     role = "Tutor" if msg.role == "model" else "Student"
                     history_text += f"{role}: {msg.parts[0].text}\n"
-            analyze_and_send_report(st.session_state.user_name, prob['category'], history_text + feedback)
-            st.session_state.page = "landing"; st.rerun()
+            
+            with st.spinner("Generating academic report..."):
+                report = analyze_and_send_report(st.session_state.user_name, prob['category'], history_text + feedback)
+                st.session_state.last_report = report
+                st.session_state.page = "report_view"
+                st.rerun()
 
     if p_id not in st.session_state.chat_sessions:
         sys_prompt = f"You are a Strength of Materials Tutor. Problem: {prob['statement']}. Use Socratic method and LaTeX."
@@ -138,10 +145,17 @@ elif st.session_state.page == "chat":
             st.markdown(message.parts[0].text)
 
     if user_input := st.chat_input("Your analysis..."):
+        # Backend numeric checking
         for target, val in prob['targets'].items():
             if target not in solved and check_numeric_match(user_input, val):
                 st.session_state.grading_data[p_id]['solved'].add(target)
-        st.session_state.chat_sessions[p_id].send_message(user_input); st.rerun()
+        
+        # RATE LIMIT HANDLING
+        try:
+            st.session_state.chat_sessions[p_id].send_message(user_input)
+            st.rerun()
+        except Exception:
+            st.warning("⚠️ The professor is a little busy right now. Please try again in a minute.")
 
 # --- Page 3: Lecture Simulation & Socratic Discussion ---
 elif st.session_state.page == "lecture":
@@ -149,63 +163,76 @@ elif st.session_state.page == "lecture":
     st.title(f"🎓 Lab: {topic}")
     col_sim, col_chat = st.columns([1, 1])
     
-    # 1. Simulation Controls and Visuals
     with col_sim:
         params = {}
         if "Stress" in topic or "Properties" in topic:
             p_val = st.slider("Force (kN)", 1, 100, 22)
             a_val = st.slider("Area (mm²)", 100, 1000, 817)
-            # Calculated stress for diagram injection
-            params = {
-                'P': p_val, 
-                'A': a_val, 
-                'stress': round((p_val * 1000) / a_val, 2)
-            }
+            params = {'P': p_val, 'A': a_val, 'stress': round((p_val * 1000) / a_val, 2)}
         
-        # Display the visual diagram (updates on slider move)
         st.image(render_lecture_visual(topic, params))
-        
-        # Display live digital readout
         if 'stress' in params:
             st.metric("Live Calculated Stress (σ)", f"{params['stress']} MPa")
+
+    with col_chat:
+        # Layout consistency: Submission at the top right
+        st.subheader("📊 Session Completion")
+        lecture_feedback = st.text_area("Notes for Dr. Um:", placeholder="What was the hardest part?", key="lec_feedback")
+        if st.button("⬅️ Submit Session", use_container_width=True):
+            history_text = ""
+            if st.session_state.lecture_session:
+                for msg in st.session_state.lecture_session.history:
+                    role = "Professor" if msg.role == "model" else "Student"
+                    history_text += f"{role}: {msg.parts[0].text}\n"
+            with st.spinner("Analyzing mastery..."):
+                report = analyze_and_send_report(st.session_state.user_name, f"LECTURE: {topic}", history_text + lecture_feedback)
+                st.session_state.last_report = report
+                st.session_state.page = "report_view"
+                st.rerun()
         
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.lecture_session = None
             st.session_state.page = "landing"
             st.rerun()
 
-    # 2. Socratic Chat Interface
-    with col_chat:
+        st.markdown("---")
+
+        # Discussion at the bottom
         st.subheader("💬 Socratic Discussion")
-        
-        # Initialize Professor Agent if session is new
         if st.session_state.lecture_session is None:
-            prompts = {
-                "Design Properties of Materials": "Looking at the curve, what happens to the stress-strain relationship after the strain reaches $\epsilon = 0.1$?",
-                "Direct Stress, Deformation, and Design": "If we keep the load constant but increase the cross-sectional area, what happens to the internal stress?",
-                "Torsional Shear Stress and Torsional Deformation": "Why is the shear stress $\tau$ always zero at the neutral axis of the shaft?",
-                "Combined Load": "What physical scenario causes Mohr's Circle to intersect the horizontal stress axis?"
-            }
-            initial_question = prompts.get(topic, "How would you describe the relationship shown in this simulation?")
-            
-            sys_msg = (f"You are Dr. Dugan Um, a Professor at TAMUCC teaching {topic}. "
-                       "Use LaTeX and the Socratic method. You will receive 'Live Lab Data' in brackets. "
-                       "Use this data to check the student's work based on their specific slider settings.")
-            
+            prompts = {"Design Properties of Materials": "Looking at the curve, what happens after the yield point?"}
+            initial_question = prompts.get(topic, "How would you describe the relationship shown?")
+            sys_msg = f"You are Professor Dugan Um teaching {topic}. Use LaTeX and Socratic method."
             model = get_gemini_model(sys_msg)
             st.session_state.lecture_session = model.start_chat(history=[])
-            st.session_state.lecture_session.send_message(initial_question)
+            
+            # INITIAL RATE LIMIT HANDLING
+            try:
+                st.session_state.lecture_session.send_message(initial_question)
+            except Exception: pass
         
-        # Display chat history (filtering out technical background data for the student UI)
-        for msg in st.session_state.lecture_session.history:
-            clean_text = re.sub(r"\[Live Lab Data:.*?\]", "", msg.parts[0].text).strip()
-            if clean_text:
-                with st.chat_message("assistant" if msg.role == "model" else "user"):
-                    st.markdown(clean_text)
+        chat_container = st.container(height=400)
+        with chat_container:
+            for msg in st.session_state.lecture_session.history:
+                clean_text = re.sub(r"\[Live Lab Data:.*?\]", "", msg.parts[0].text).strip()
+                if clean_text:
+                    with st.chat_message("assistant" if msg.role == "model" else "user"):
+                        st.markdown(clean_text)
         
-        # Input for Socratic Discussion
         if lecture_input := st.chat_input("Discuss..."):
-            # Injecting current slider values as a hidden context prefix so the AI "sees" the lab
-            context = f"[Live Lab Data: P={params.get('P', 'N/A')}kN, A={params.get('A', 'N/A')}mm², Stress={params.get('stress', 'N/A')}MPa] "
-            st.session_state.lecture_session.send_message(context + lecture_input)
-            st.rerun()
+            context = f"[Live Lab Data: P={params.get('P', 'N/A')}kN, A={params.get('A', 'N/A')}mm²] "
+            
+            # RATE LIMIT HANDLING
+            try:
+                st.session_state.lecture_session.send_message(context + lecture_input)
+                st.rerun()
+            except Exception:
+                st.warning("⚠️ The professor is a little busy right now. Please try again in a minute.")
+
+# --- Page 4: Report View ---
+elif st.session_state.page == "report_view":
+    st.title("📊 Performance Summary")
+    st.markdown(st.session_state.get("last_report", "No report available."))
+    if st.button("Return to Main Menu"):
+        st.session_state.page = "landing"
+        st.rerun()
