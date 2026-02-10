@@ -109,15 +109,21 @@ elif st.session_state.page == "lecture":
     # Left Column: Simulation
     with col_sim:
         params = {'lec_id': lec_id}
-        if lec_id in ["SM_4", "SM_5", "SM_6"]:
+        # Fixed: Added SM_7 to allow slider control for Deflection Lab
+        if lec_id in ["SM_4", "SM_5", "SM_6", "SM_7"]:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
+            
             if lec_id == "SM_5":
                 s_val = st.slider("Section Modulus (S) [10³ mm³]", 10, 500, 301)
                 m_max = p_val * (l_pos/1000) * (1 - l_pos/1000)
                 sigma_b = (m_max * 1e6) / (s_val * 1e3)
                 params.update({'P': p_val, 'L_pos': l_pos, 'S': s_val, 'sigma_b': sigma_b})
                 st.metric("Max Bending Stress (σ)", f"{sigma_b:.2f} MPa")
+            elif lec_id == "SM_7":
+                # Specific metrics for Deflection Lab
+                params.update({'P': p_val, 'L_pos': l_pos})
+                st.metric("Applied Load (P)", f"{p_val} kN")
             else:
                 a_val = st.slider("Beam Area (A) [mm²]", 100, 2000, 817)
                 params.update({'P': p_val, 'L_pos': l_pos, 'A': a_val})
