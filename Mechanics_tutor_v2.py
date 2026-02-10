@@ -51,7 +51,6 @@ if st.session_state.page == "landing":
     st.subheader("💡 Interactive Learning Agents")
     
     col_l1, col_l2, col_l3, col_l4 = st.columns(4)
-    # Mapping lectures to the 6 IDs supported by your renderer
     lectures = [
         ("Design Properties of Materials", "SM_1"), 
         ("Direct Stress, Deformation, and Design", "SM_2"), 
@@ -71,7 +70,6 @@ if st.session_state.page == "landing":
                 st.session_state.lecture_session = None 
                 st.rerun()
 
-    # Restoration of Review Problems
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
     categories = {}
@@ -104,12 +102,10 @@ elif st.session_state.page == "lecture":
     with col_sim:
         params = {'lec_id': lec_id}
         
-        # Branching logic for Sliders based on ID
         if lec_id in ["SM_4", "SM_5", "SM_6"]:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
             
-            # Logic specifically for Stress Lab
             if lec_id == "SM_5":
                 s_val = st.slider("Section Modulus (S) [10³ mm³]", 10, 500, 301)
                 m_max = p_val * (l_pos/1000) * (1 - l_pos/1000)
@@ -120,7 +116,7 @@ elif st.session_state.page == "lecture":
                 a_val = st.slider("Beam Area (A) [mm²]", 100, 2000, 817)
                 params.update({'P': p_val, 'L_pos': l_pos, 'A': a_val})
 
-        else: # SM_1, SM_2, SM_3 or fallbacks
+        else: # SM_1, SM_2, SM_3
             p_val = st.slider("Magnitude / Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area / Geometry (A) [mm²]", 100, 2000, 817)
             stress = (p_val * 1000) / a_val
@@ -135,7 +131,7 @@ elif st.session_state.page == "lecture":
             st.rerun()
         st.subheader("💬 Socratic Discussion")
         if st.session_state.lecture_session is None:
-            sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
+            sys_msg = f"You are Professor Dugan Um teaching {topic}."
             st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[])
         
         for msg in st.session_state.lecture_session.history:
