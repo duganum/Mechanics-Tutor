@@ -1,3 +1,104 @@
+import streamlit as st
+import json
+import re
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Import custom tools - Ensure these files are in the same folder
+from logic_v2_GitHub import get_gemini_model, load_problems, check_numeric_match, analyze_and_send_report
+from render_v2_GitHub import render_problem_diagram, render_lecture_visual
+
+# 1. Page Configuration
+st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wide")
+
+# 2. UI Styling
+st.markdown("""
+    <style>
+    html, body, [class*="st-"] { font-size: 1.1rem; }
+    div.stButton > button {
+        height: 65px; 
+        font-size: 1.2rem !important; 
+        font-weight: 700 !important; 
+        transition: all 0.3s ease;
+    }
+    .stSlider label { font-size: 1.1rem !important; font-weight: bold; }
+    </style>
+""", unsafe_allow_html=True)
+
+# 3. Initialize Session State
+if "page" not in st.session_state: st.session_state.page = "landing"
+if "user_name" not in st.session_state: st.session_state.user_name = None
+if "lecture_topic" not in st.session_state: st.session_state.lecture_topic = None
+if "lecture_id" not in st.session_state: st.session_state.lecture_id = None
+if "lecture_session" not in st.session_state: st.session_state.lecture_session = None
+
+PROBLEMS = load_problems()
+
+# --- Page 0: Name Entry ---
+if st.session_state.user_name is None:
+    st.title("🛡️ Engineering Mechanics Portal")
+    with st.form("name_form"):
+        name_input = st.text_input("Enter your Full Name to begin")
+        if st.form_submit_button("Access Tutor"):
+            if name_input.strip():
+                st.session_state.user_name = name_input.strip()
+                st.rerun()
+    st.stop()
+
+# --- Page 1: Main Menu ---
+if st.session_state.page == "landing":
+    st.title(f"🚀 Welcome, {st.session_state.user_name}!")
+    st.subheader("💡 Interactive Learning Agents")
+    
+    col_l1, col_l2, col_l3, col_l4 = st.columns(4)
+    lectures = [
+        ("Design Properties of Materials", "SM_1"), 
+        ("Direct Stress, Deformation, and Design", "SM_2"), 
+        ("Torsional Shear Stress and Torsional Deformation", "SM_3"),
+        ("Shearing Forces and Bending Moments in Beams", "SM_4"),
+        ("Stress Due to Bending", "SM_5"),
+        ("Shearing Stresses in Beams", "SM_6"),
+        ("Deflection of Beams", "SM_7"),
+        ("Combined Load", "SM_8")
+    ]
+    for i, (name, pref) in enumerate(lectures):
+        with [col_l1, col_l2, col_l3, col_l4][i % 4]:
+            if st.button(f"🎓 {name}", key=f"lec_{pref}", use_container_width=True):
+                st.session_state.lecture_topic = name
+                st.session_state.lecture_id = pref 
+                st.session_state.page = "lecture"
+                st.session_state.lecture_session = None 
+                st.rerun()
+
+    st.markdown("---")
+    st.subheader("📝 FE Exam Review Problems")
+    categories = {}
+    for p in PROBLEMS:
+        cat_main = p.get('category', 'General Review').split(":")[0].strip()
+        if cat_main not in categories: categories[cat_main] = []
+        categories[cat_main].append(p)
+
+    for cat_name, probs in categories.items():
+        st.markdown(f"#### {cat_name}")
+        for i in range(0, len(probs), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i + j < len(probs):
+                    prob = probs[i + j]
+                    with cols[j]:
+                        if st.button(f"**{prob.get('hw_subtitle', 'Prob')}**\n({prob['id']})", key=f"btn_{prob['id']}", use_container_width=True):
+                            st.session_state.current_prob = prob
+                            st.session_state.page = "chat"
+                            st.rerun()
+
+# --- Page 2: Problem Solving Chat ---
+elif st.session_state.page == "chat":
+    # (Placeholder for your existing Problem Solving Logic)
+    st.write("Problem solving mode...")
+    if st.button("Back to Menu"):
+        st.session_state.page = "landing"
+        st.rerun()
+
 # --- Page 3: Lecture Simulation & Discussion Flow Revised ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
