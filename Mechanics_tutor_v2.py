@@ -91,7 +91,7 @@ if st.session_state.page == "landing":
                             st.session_state.page = "chat"
                             st.rerun()
 
-# --- Page 3: Lecture Simulation & Discussion ---
+# --- Page 3: Lecture Simulation & Socratic Discussion ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
     lec_id = st.session_state.lecture_id
@@ -99,7 +99,7 @@ elif st.session_state.page == "lecture":
     
     col_sim, col_side = st.columns([1, 1])
     
-    # Left Column: Simulation
+    # Left Column: Simulation Parameters and Visuals
     with col_sim:
         params = {'lec_id': lec_id}
         if lec_id in ["SM_4", "SM_5", "SM_6"]:
@@ -123,7 +123,7 @@ elif st.session_state.page == "lecture":
 
         st.image(render_lecture_visual(topic, params))
 
-    # Right Column: Session Analysis
+    # Right Column: Session Analysis (Matches Dynamics Tutor Layout)
     with col_side:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
@@ -136,26 +136,24 @@ elif st.session_state.page == "lecture":
         
         if st.button("⬅️ Submit Session", use_container_width=True):
             if st.session_state.lecture_session:
-                chat_history = [f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history]
+                # Format history as a single string for AI evaluation
+                history_text = "\n".join([f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history])
+                # Append student feedback for the AI to include in the report logic
+                full_history_with_feedback = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
                 
                 with st.spinner("Analyzing session and sending report..."):
                     try:
-                        # FIXED: Removed 'topic' argument to match function signature in logic_v2_GitHub
-                        # Combined topic into the user_name string for identification
-                        success = analyze_and_send_report(
-                            user_name=f"{st.session_state.user_name} | Topic: {topic}",
-                            history=chat_history,
-                            feedback=str(user_feedback),
-                            recipient_email="dugan.um@gmail.com"
+                        # Logic fixed to match logic_v2_GitHub: analyze_and_send_report(user_name, topic_title, chat_history)
+                        report = analyze_and_send_report(
+                            user_name=str(st.session_state.user_name),
+                            topic_title=str(topic),
+                            chat_history=full_history_with_feedback
                         )
-                        if success:
-                            st.success("Report sent successfully!")
-                            st.session_state.page = "landing"
-                            st.rerun()
-                        else:
-                            st.error("Submission failed.")
+                        st.success("Session Analysis complete and emailed to Dr. Um!")
+                        st.session_state.page = "landing"
+                        st.rerun()
                     except Exception as e:
-                        st.error(f"Error during submission: {e}")
+                        st.error(f"Submission Error: {e}")
 
     # Bottom Full Width: Socratic Discussion
     st.markdown("---")
