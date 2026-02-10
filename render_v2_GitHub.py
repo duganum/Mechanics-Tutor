@@ -50,7 +50,6 @@ def render_lecture_visual(topic, params=None):
         stress = params.get('stress', round((p_val * 1000) / a_val, 2))
 
         # Draw a bar representation
-        # Rectangle centered at x=0.5
         ax.add_patch(plt.Rectangle((0.35, 0.2), 0.3, 0.6, color='skyblue', alpha=0.6, ec='black', lw=1))
         
         # Draw tensile force arrows
@@ -65,7 +64,34 @@ def render_lecture_visual(topic, params=None):
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1.1)
         ax.set_title("Direct Stress Analysis", fontsize=9)
-        ax.axis('off') # Hide axes for a cleaner "diagram" look
+        ax.axis('off')
+
+    # --- Topic 3: Torsional Shear Stress and Torsional Deformation ---
+    elif "Torsional" in topic:
+        # P slider acts as Torque (T) in N-m or kN-m
+        # A slider acts as a reference for shaft size
+        t_val = params.get('P', 22)
+        radius = np.sqrt(params.get('A', 817) / np.pi)
+        
+        # Draw Shaft Cross-section
+        circle = plt.Circle((0.5, 0.5), 0.35, color='lightgray', ec='black', lw=2, alpha=0.7)
+        ax.add_patch(circle)
+        
+        # Draw shear stress distribution arrows (radial)
+        for angle in np.linspace(0, 2*np.pi, 8, endpoint=False):
+            dx, dy = 0.25 * np.cos(angle), 0.25 * np.sin(angle)
+            ax.arrow(0.5 + dx, 0.5 + dy, -0.1*np.sin(angle), 0.1*np.cos(angle), 
+                     head_width=0.03, color='red', lw=1)
+
+        ax.text(0.5, 0.5, f"T = {t_val} kN-m\nr ≈ {radius:.1f} mm", ha='center', va='center', fontsize=7)
+        ax.set_title("Torsional Shear (τ) Diagram", fontsize=9)
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+        ax.axis('off')
+
+    # --- Default Case (prevents empty graph) ---
+    else:
+        ax.text(0.5, 0.5, f"Visualizing:\n{topic}", ha='center', va='center', fontsize=8)
+        ax.axis('off')
 
     plt.tight_layout()
     buf = io.BytesIO()
