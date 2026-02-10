@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import io
+import matplotlib.transforms as mtransforms
 
 def render_lecture_visual(topic, params=None):
     if params is None: params = {}
@@ -95,50 +96,59 @@ def render_lecture_visual(topic, params=None):
         ax_defl.set_xlim(-0.1, 1.1); ax_defl.axis('off')
         plt.tight_layout(); return save_to_buffer(fig)
 
-    # NEW: SM_8: Combined Load (Stress Transformation & Mohr's Circle)
+    # REVISED: SM_8: Combined Load with Rotating Elements
     elif lec_id == "SM_8":
-        # Live parameters for Mohr's Circle
-        sig_x = params.get('P', 22)  # Treating P as Sigma_x
-        tau_xy = params.get('A', 817) / 50  # Treating A as Tau_xy scaled for visuals
+        sig_x = params.get('P', 22)
+        tau_xy = params.get('A', 817) / 50
         sig_y = 0
         
-        # Calculate Mohr's Circle parameters
         center = (sig_x + sig_y) / 2
         radius = np.sqrt(((sig_x - sig_y) / 2)**2 + tau_xy**2)
-        sig_1, sig_2 = center + radius, center - radius
+        sig_1 = center + radius
         tau_max = radius
-        theta_p = 0.5 * np.arctan2(2 * tau_xy, sig_x - sig_y)
-        
+        # Calculate theta_p in radians (Mohr's circle angle is 2*theta)
+        theta_p_rad = 0.5 * np.arctan2(2 * tau_xy, sig_x - sig_y)
+        theta_p_deg = np.degrees(theta_p_rad)
+        theta_s_deg = theta_p_deg - 45 # Max shear orientation
+
         fig, axs = plt.subplots(2, 2, figsize=(6, 6), dpi=150)
         
-        # Panel 1: Original Stress Element
-        ax = axs[0, 0]
-        ax.add_patch(plt.Rectangle((0.3, 0.3), 0.4, 0.4, fill=False, lw=2))
-        ax.annotate('', xy=(0.8, 0.5), xytext=(0.7, 0.5), arrowprops=dict(arrowstyle='->', color='blue')) # Sig_x
-        ax.annotate('', xy=(0.5, 0.8), xytext=(0.5, 0.75), arrowprops=dict(arrowstyle='->', color='cyan')) # Tau
-        ax.set_title("Original Element", fontsize=8); ax.axis('off')
-        
-        # Panel 2: Mohr's Circle
-        ax = axs[1, 0]
-        circle = plt.Circle((center, 0), radius, fill=False, color='red', lw=1.5)
-        ax.add_patch(circle)
-        ax.axhline(0, color='black', lw=0.8); ax.axvline(0, color='black', lw=0.8)
-        ax.plot([sig_x, sig_y], [tau_xy, -tau_xy], 'ko--', ms=4) # Diameter line
-        ax.set_title("Mohr's Circle", fontsize=8); ax.set_xlabel("σ"); ax.set_ylabel("τ")
-        ax.set_aspect('equal')
-        
-        # Panel 3: Principal Stress Element (Max Tensile)
-        ax = axs[0, 1]
-        ax.add_patch(plt.Rectangle((0.3, 0.3), 0.4, 0.4, fill=False, lw=2, color='green'))
-        ax.annotate(f'σ1={sig_1:.1f}', xy=(0.85, 0.5), xytext=(0.7, 0.5), arrowprops=dict(arrowstyle='->', color='green'))
-        ax.set_title("Princ. Stress (σ1)", fontsize=8); ax.axis('off')
-        
-        # Panel 4: Max Shear Element
-        ax = axs[1, 1]
-        ax.add_patch(plt.Rectangle((0.3, 0.3), 0.4, 0.4, fill=False, lw=2, color='orange', ls='--'))
-        ax.annotate(f'τmax={tau_max:.1f}', xy=(0.5, 0.85), xytext=(0.5, 0.7), arrowprops=dict(arrowstyle='->', color='orange'))
-        ax.set_title("Max Shear (τmax)", fontsize=8); ax.axis('off')
-        
+        def draw_rotated_element(ax, angle_deg, title, main_stress, stress_type='tensile'):
+            ax.set_aspect('equal')
+            ax.set_xlim(-1, 1); ax.set_ylim(-1, 1)
+            # Create a square element
+            rect = plt.Rectangle((-0.3, -0.3), 0.6, 0.6, fill=False, lw=2, 
+                                 color='green' if stress_type=='tensile' else 'orange')
+            # Apply rotation transform
+            t = mtransforms.Affine2D().rotate_deg_around(0, 0, angle_deg) + ax.transData
+            rect.set_transform(t)
+            ax.add_patch(rect)
+            
+            # Draw stress arrow on rotated face
+            rad = np.radians(angle_deg)
+            # End points for the arrow
+            x_tip, y_tip = 0.5 * np.cos(rad), 0.5 * np.sin(rad)
+            ax.annotate(f'{main_stress:.1f}', xy=(x_tip, y_tip), xytext=(0,0),
+                        arrowprops=dict(arrowstyle='->', color='black', lw=1.5),
+                        transform=ax.transData)
+            ax.set_title(f"{title}\nθ = {angle_deg:.1f}°", fontsize=8)
+            ax.axis('off')
+
+        # Mohr's Circle
+        ax_mohr = axs[1, 0]
+        c = plt.Circle((center, 0), radius, fill=False, color='red', lw=1.5)
+        ax_mohr.add_patch(c)
+        ax_mohr.axhline(0, color='black', lw=0.8); ax_mohr.axvline(0, color='black', lw=0.8)
+        ax_mohr.plot([sig_x, sig_y], [tau_xy, -tau_xy], 'ko--', ms=4)
+        ax_mohr.set_title("Mohr's Circle", fontsize=8)
+
+        # Original Element (Static 0 deg)
+        draw_rotated_element(axs[0, 0], 0, "Original Element", sig_x)
+        # Principal Element (Rotated by theta_p)
+        draw_rotated_element(axs[0, 1], theta_p_deg, "Principal Element", sig_1, 'tensile')
+        # Max Shear Element (Rotated by theta_s)
+        draw_rotated_element(axs[1, 1], theta_s_deg, "Max Shear Element", tau_max, 'shear')
+
         plt.tight_layout(); return save_to_buffer(fig)
 
     return save_to_buffer(plt.figure(figsize=(3,3)))
