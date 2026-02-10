@@ -15,10 +15,8 @@ st.set_page_config(page_title="FE Exam: Strength of Materials Tutor", layout="wi
 st.markdown("""
     <style>
     html, body, [class*="st-"] { font-size: 1.1rem; }
-    .stChatMessage { font-size: 1.1rem !important; }
     div.stButton > button {
         height: 65px; 
-        padding: 5px 10px;
         font-size: 1.2rem !important; 
         font-weight: 700 !important; 
         transition: all 0.3s ease;
@@ -29,11 +27,8 @@ st.markdown("""
 
 # 3. Initialize Session State
 if "page" not in st.session_state: st.session_state.page = "landing"
-if "chat_sessions" not in st.session_state: st.session_state.chat_sessions = {}
-if "grading_data" not in st.session_state: st.session_state.grading_data = {}
 if "user_name" not in st.session_state: st.session_state.user_name = None
 if "lecture_topic" not in st.session_state: st.session_state.lecture_topic = None
-if "lecture_session" not in st.session_state: st.session_state.lecture_session = None
 
 PROBLEMS = load_problems()
 
@@ -53,7 +48,7 @@ if st.session_state.page == "landing":
     st.title(f"🚀 Welcome, {st.session_state.user_name}!")
     st.subheader("💡 Interactive Learning Agents")
     
-    # Grid for the 8 Lecture topics shown in your image
+    # Grid for the 8 Lecture topics
     col_l1, col_l2, col_l3, col_l4 = st.columns(4)
     lectures = [
         ("Design Properties of Materials", "SM_1"), 
@@ -70,20 +65,33 @@ if st.session_state.page == "landing":
             if st.button(f"🎓 {name}", key=f"lec_{pref}", use_container_width=True):
                 st.session_state.lecture_topic = name
                 st.session_state.page = "lecture"
-                st.session_state.lecture_session = None 
                 st.rerun()
 
-    # Restoration of the Review Problems section
+    # Restoration of Review Problems Section
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
-    # (Problem logic here based on your logic_v2 categories)
+    
+    categories = {}
+    for p in PROBLEMS:
+        cat_main = p.get('category', 'General Review').split(":")[0].strip()
+        if cat_main not in categories: categories[cat_main] = []
+        categories[cat_main].append(p)
 
-# --- Page 2: Practice Problem Chat ---
-elif st.session_state.page == "chat":
-    # (Existing chat logic for HW problems)
-    pass
+    for cat_name, probs in categories.items():
+        st.markdown(f"#### {cat_name}")
+        for i in range(0, len(probs), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i + j < len(probs):
+                    prob = probs[i + j]
+                    sub_label = prob.get("hw_subtitle", prob.get('id', 'Prob'))
+                    with cols[j]:
+                        if st.button(f"**{sub_label}**\n({prob['id']})", key=f"btn_{prob['id']}", use_container_width=True):
+                            st.session_state.current_prob = prob
+                            st.session_state.page = "chat"
+                            st.rerun()
 
-# --- Page 3: Lecture Simulation & Socratic Discussion ---
+# --- Page 3: Lecture Simulation ---
 elif st.session_state.page == "lecture":
     topic = st.session_state.lecture_topic
     st.title(f"🎓 Lab: {topic}")
@@ -91,15 +99,12 @@ elif st.session_state.page == "lecture":
     
     with col_sim:
         params = {}
-        # Dynamic sliders based on selected topic
+        # Dynamic sliders for Beams/Bending
         if any(kw in topic for kw in ["Shearing Forces", "Beams", "Bending"]):
-            # Specific sliders for the Beam lab
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
-            # Slider repurposed for Section Modulus or Area as requested
             s_val = st.slider("Section Modulus (S) [10³ mm³]", 10, 500, 150)
             
-            # Calculations for live metrics
             pos_ratio = l_pos / 1000
             m_max = p_val * pos_ratio * (1 - pos_ratio)
             sigma_b = (m_max * 1e6) / (s_val * 1e3)
@@ -108,23 +113,18 @@ elif st.session_state.page == "lecture":
             st.metric("Max Bending Moment (M_max)", f"{m_max:.2f} kNm")
             st.metric("Max Bending Stress (σ)", f"{sigma_b:.2f} MPa")
 
-        elif "Torsional" in topic:
-            p_val = st.slider("Torque (T) [kN-m]", 1, 100, 22)
-            a_val = st.slider("Shaft Area (A) [mm²]", 100, 1000, 817)
-            params = {'P': p_val, 'A': a_val}
-
-        else: # Standard sliders for Stress/Properties
+        else: # Default sliders for other topics
             p_val = st.slider("Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area (A) [mm²]", 100, 1000, 817)
             params = {'P': p_val, 'A': a_val, 'stress': round((p_val * 1000) / a_val, 2)}
-            st.metric("Live Calculated Stress (σ)", f"{params['stress']} MPa")
+            st.metric("Calculated Stress (σ)", f"{params['stress']} MPa")
 
-        # Renders the visual using params
         st.image(render_lecture_visual(topic, params))
 
     with col_chat:
-        # Restoration of Socratic chat and exit buttons
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
-        # (Remaining Socratic chat logic)
+        st.markdown("---")
+        st.subheader("💬 Discussion")
+        # (Socratic chat logic remains here)
