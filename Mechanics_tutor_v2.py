@@ -132,10 +132,6 @@ elif st.session_state.page == "lecture":
 
     # Right Column: Discussion
     with col_side:
-        if st.button("🏠 Exit to Menu", use_container_width=True):
-            st.session_state.page = "landing"
-            st.rerun()
-
         st.subheader("💬 Socratic Discussion")
         if st.session_state.lecture_session is None:
             sys_msg = f"You are Professor Dugan Um teaching {topic} (ID: {lec_id})."
@@ -162,19 +158,26 @@ elif st.session_state.page == "lecture":
     st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation.")
     user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback...", height=150)
     
-    if st.button("⬅️ Submit Session", use_container_width=True):
-        if st.session_state.lecture_session:
-            history_text = "\n".join([f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history])
-            full_history = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
-            with st.spinner("Analyzing session..."):
-                try:
-                    report = analyze_and_send_report(
-                        user_name=str(st.session_state.user_name),
-                        topic_title=str(topic),
-                        chat_history=full_history
-                    )
-                    st.success("Analysis emailed to Dr. Um!")
-                    st.session_state.page = "landing"
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
+    col_submit, col_exit = st.columns(2)
+    with col_submit:
+        if st.button("⬅️ Submit Session", use_container_width=True):
+            if st.session_state.lecture_session:
+                history_text = "\n".join([f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history])
+                full_history = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
+                with st.spinner("Analyzing session..."):
+                    try:
+                        report = analyze_and_send_report(
+                            user_name=str(st.session_state.user_name),
+                            topic_title=str(topic),
+                            chat_history=full_history
+                        )
+                        st.success("Analysis emailed to Dr. Um!")
+                        st.session_state.page = "landing"
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+
+    with col_exit:
+        if st.button("🏠 Exit to Menu", use_container_width=True):
+            st.session_state.page = "landing"
+            st.rerun()
