@@ -7,7 +7,7 @@ def render_lecture_visual(topic, params=None):
     if params is None: params = {}
     lec_id = params.get('lec_id', 'SM_0')
     
-    # SM_1 to SM_7 logic remains unchanged as per instructions
+    # SM_1 to SM_7 logic remains unchanged
     if lec_id == "SM_1":
         fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
         strain_coords = np.linspace(0, 0.5, 100)
@@ -96,73 +96,72 @@ def render_lecture_visual(topic, params=None):
         ax_defl.set_xlim(-0.1, 1.1); ax_defl.axis('off')
         plt.tight_layout(); return save_to_buffer(fig)
 
-    # REVISED SM_8: Now supports Sigma X, Sigma Y, and Shear Stress
     elif lec_id == "SM_8":
-        sig_x = params.get('P', 0)        # Stored from σx slider
-        sig_y = params.get('sigma_y', 0)  # New: Stored from σy slider
-        tau_xy = params.get('A', 0) / 50  # Existing scaling logic for τxy
+        sig_x = params.get('P', 0)
+        sig_y = params.get('sigma_y', 0)
+        tau_xy = params.get('A', 0) / 5
         
         center = (sig_x + sig_y) / 2
         radius = np.sqrt(((sig_x - sig_y) / 2)**2 + tau_xy**2)
-        
-        # Guard against zero radius
         if radius == 0: radius = 0.001
 
         sig_1 = center + radius
-        sig_2 = center - radius
         tau_max = radius
-        
-        # Mohr's circle angle (2*theta)
         theta_p_rad = 0.5 * np.arctan2(2 * tau_xy, sig_x - sig_y)
         theta_p_deg = np.degrees(theta_p_rad)
         theta_s_deg = theta_p_deg - 45 
 
         fig, axs = plt.subplots(2, 2, figsize=(6, 6), dpi=150)
         
-        def draw_rotated_element(ax, angle_deg, title, stress_val, stress_type='tensile'):
+        def draw_rotated_element(ax, angle_deg, title, s_x, s_y=0, t_xy=0, mode='normal'):
             ax.set_aspect('equal')
             ax.set_xlim(-1, 1); ax.set_ylim(-1, 1)
-            rect = plt.Rectangle((-0.3, -0.3), 0.6, 0.6, fill=False, lw=2, 
-                                 color='green' if stress_type=='tensile' else 'orange')
-            t = mtransforms.Affine2D().rotate_deg_around(0, 0, angle_deg) + ax.transData
-            rect.set_transform(t)
+            tr = mtransforms.Affine2D().rotate_deg_around(0, 0, angle_deg) + ax.transData
+            
+            # Element Square
+            color = 'green' if s_x >= 0 else 'red'
+            if mode == 'shear': color = 'orange'
+            rect = plt.Rectangle((-0.3, -0.3), 0.6, 0.6, fill=False, lw=2, color=color)
+            rect.set_transform(tr)
             ax.add_patch(rect)
             
-            rad = np.radians(angle_deg)
-            x_tip, y_tip = 0.5 * np.cos(rad), 0.5 * np.sin(rad)
-            ax.annotate(f'{stress_val:.1f}', xy=(x_tip, y_tip), xytext=(0,0),
-                        arrowprops=dict(arrowstyle='->', color='black', lw=1.5),
-                        transform=ax.transData)
+            # Normal Arrows (Skip for Max Shear Element)
+            if mode != 'shear':
+                # Sigma X
+                ax.annotate('', xy=(0.5 if s_x >=0 else 0.1, 0), xytext=(0.3 if s_x>=0 else 0.7, 0),
+                            arrowprops=dict(arrowstyle='->' if s_x>=0 else '<-', color='blue', lw=1.5), transform=tr)
+                ax.text(0.5, 0.1, f'{s_x:.0f}', transform=tr, fontsize=7, color='blue', fontweight='bold')
+                # Sigma Y
+                ax.annotate('', xy=(0, 0.5 if s_y >=0 else 0.1), xytext=(0, 0.3 if s_y>=0 else 0.7),
+                            arrowprops=dict(arrowstyle='->' if s_y>=0 else '<-', color='purple', lw=1.5), transform=tr)
+                ax.text(0.1, 0.5, f'{s_y:.0f}', transform=tr, fontsize=7, color='purple', fontweight='bold')
+
+            # Shear Arrows (For Original and Max Shear)
+            if (t_xy != 0 or mode == 'shear'):
+                shear_val = t_xy if mode != 'shear' else tau_max
+                # Parallel to right face (y-direction on x-face)
+                ax.annotate('', xy=(0.35, 0.25 if shear_val >=0 else -0.25), xytext=(0.35, -0.25 if shear_val >=0 else 0.25),
+                            arrowprops=dict(arrowstyle='->', color='orange', lw=1.5), transform=tr)
+                ax.text(0.4, 0, f'{shear_val:.0f}', transform=tr, fontsize=7, color='orange')
+
             ax.set_title(f"{title}\nθ = {angle_deg:.1f}°", fontsize=8)
             ax.axis('off')
 
-        # Mohr's Circle Plotting
+        # Mohr's Circle
         ax_mohr = axs[1, 0]
         c = plt.Circle((center, 0), radius, fill=False, color='red', lw=1.5)
         ax_mohr.add_patch(c)
-        ax_mohr.axhline(0, color='black', lw=0.8)
-        ax_mohr.axvline(0, color='black', lw=0.8)
-        
-        # Plot points (σx, τxy) and (σy, -τxy)
+        ax_mohr.axhline(0, color='black', lw=0.8); ax_mohr.axvline(0, color='black', lw=0.8)
         ax_mohr.plot([sig_x, sig_y], [tau_xy, -tau_xy], 'ko--', ms=4)
-        ax_mohr.plot(center, 0, 'rx', ms=5) # Center point
-        
-        # Set dynamic limits for Mohr's Circle
-        lim = radius * 1.5
-        ax_mohr.set_xlim(center - lim, center + lim)
-        ax_mohr.set_ylim(-lim, lim)
+        lim = radius * 2.5
+        ax_mohr.set_xlim(center - lim/2, center + lim/2); ax_mohr.set_ylim(-lim/2, lim/2)
         ax_mohr.set_title("Mohr's Circle", fontsize=8)
-        ax_mohr.grid(True, linestyle=':', alpha=0.6)
 
-        # Original Element
-        draw_rotated_element(axs[0, 0], 0, "Original Element", sig_x)
-        # Principal Element
-        draw_rotated_element(axs[0, 1], theta_p_deg, "Principal Element", sig_1, 'tensile')
-        # Max Shear Element
-        draw_rotated_element(axs[1, 1], theta_s_deg, "Max Shear Element", tau_max, 'shear')
+        draw_rotated_element(axs[0, 0], 0, "Original Element", sig_x, sig_y, tau_xy)
+        draw_rotated_element(axs[0, 1], theta_p_deg, "Principal Element", sig_1, center - radius, 0)
+        draw_rotated_element(axs[1, 1], theta_s_deg, "Max Shear Element", 0, 0, mode='shear')
 
-        plt.tight_layout()
-        return save_to_buffer(fig)
+        plt.tight_layout(); return save_to_buffer(fig)
 
     return save_to_buffer(plt.figure(figsize=(3,3)))
 
