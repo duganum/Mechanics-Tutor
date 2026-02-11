@@ -106,6 +106,7 @@ def render_lecture_visual(topic, params=None):
         if radius == 0: radius = 0.001
 
         sig_1 = center + radius
+        sig_2 = center - radius
         tau_max = radius
         theta_p_rad = 0.5 * np.arctan2(2 * tau_xy, sig_x - sig_y)
         theta_p_deg = np.degrees(theta_p_rad)
@@ -119,30 +120,33 @@ def render_lecture_visual(topic, params=None):
             tr = mtransforms.Affine2D().rotate_deg_around(0, 0, angle_deg) + ax.transData
             
             # Element Square
-            color = 'green' if s_x >= 0 else 'red'
+            color = 'green' if (s_x >= 0 and mode != 'shear') else 'red'
             if mode == 'shear': color = 'orange'
             rect = plt.Rectangle((-0.3, -0.3), 0.6, 0.6, fill=False, lw=2, color=color)
             rect.set_transform(tr)
             ax.add_patch(rect)
             
-            # Normal Arrows (Skip for Max Shear Element)
+            # Normal Arrows (Normal to surface)
             if mode != 'shear':
-                # Sigma X
+                # Sigma X (Right/Left faces)
                 ax.annotate('', xy=(0.5 if s_x >=0 else 0.1, 0), xytext=(0.3 if s_x>=0 else 0.7, 0),
                             arrowprops=dict(arrowstyle='->' if s_x>=0 else '<-', color='blue', lw=1.5), transform=tr)
-                ax.text(0.5, 0.1, f'{s_x:.0f}', transform=tr, fontsize=7, color='blue', fontweight='bold')
-                # Sigma Y
+                ax.text(0.55 if s_x >=0 else 0.1, 0.05, f'{s_x:.0f}', transform=tr, fontsize=7, color='blue', fontweight='bold')
+                # Sigma Y (Top/Bottom faces)
                 ax.annotate('', xy=(0, 0.5 if s_y >=0 else 0.1), xytext=(0, 0.3 if s_y>=0 else 0.7),
                             arrowprops=dict(arrowstyle='->' if s_y>=0 else '<-', color='purple', lw=1.5), transform=tr)
-                ax.text(0.1, 0.5, f'{s_y:.0f}', transform=tr, fontsize=7, color='purple', fontweight='bold')
+                ax.text(0.05, 0.55 if s_y >=0 else 0.1, f'{s_y:.0f}', transform=tr, fontsize=7, color='purple', fontweight='bold')
 
-            # Shear Arrows (For Original and Max Shear)
+            # Shear Arrows (Parallel to surface)
             if (t_xy != 0 or mode == 'shear'):
-                shear_val = t_xy if mode != 'shear' else tau_max
-                # Parallel to right face (y-direction on x-face)
-                ax.annotate('', xy=(0.35, 0.25 if shear_val >=0 else -0.25), xytext=(0.35, -0.25 if shear_val >=0 else 0.25),
+                val = t_xy if mode != 'shear' else tau_max
+                # Right face
+                ax.annotate('', xy=(0.35, 0.25 if val >=0 else -0.25), xytext=(0.35, -0.25 if val >=0 else 0.25),
                             arrowprops=dict(arrowstyle='->', color='orange', lw=1.5), transform=tr)
-                ax.text(0.4, 0, f'{shear_val:.0f}', transform=tr, fontsize=7, color='orange')
+                # Top face
+                ax.annotate('', xy=(0.25 if val < 0 else -0.25, 0.35), xytext=(-0.25 if val < 0 else 0.25, 0.35),
+                            arrowprops=dict(arrowstyle='->', color='orange', lw=1.5), transform=tr)
+                ax.text(0.4, 0, f'{val:.0f}', transform=tr, fontsize=7, color='orange')
 
             ax.set_title(f"{title}\nθ = {angle_deg:.1f}°", fontsize=8)
             ax.axis('off')
@@ -158,7 +162,7 @@ def render_lecture_visual(topic, params=None):
         ax_mohr.set_title("Mohr's Circle", fontsize=8)
 
         draw_rotated_element(axs[0, 0], 0, "Original Element", sig_x, sig_y, tau_xy)
-        draw_rotated_element(axs[0, 1], theta_p_deg, "Principal Element", sig_1, center - radius, 0)
+        draw_rotated_element(axs[0, 1], theta_p_deg, "Principal Element", sig_1, sig_2, 0)
         draw_rotated_element(axs[1, 1], theta_s_deg, "Max Shear Element", 0, 0, mode='shear')
 
         plt.tight_layout(); return save_to_buffer(fig)
