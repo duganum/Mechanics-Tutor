@@ -116,7 +116,7 @@ elif st.session_state.page == "lecture":
         # Directory mapping for all chapters
         img_dir_ch2 = "images/HW 2 (direct stress)/images"
         img_dir_ch3 = "images/HW 3 (torsional shear stress)"
-        img_dir_ch4 = "images/HW 4 (SFD & BMD)"
+        img_dir_ch4 = "images/HW 4 (SFD & BMD)" # HW 4 and HW 5 share same images
         
         def find_and_display_image(filename, dir_path):
             full_path = os.path.join(dir_path, filename)
@@ -161,9 +161,20 @@ elif st.session_state.page == "lecture":
         elif lec_id == "SM_4_3":
             st.info(st.session_state.current_prob['statement'])
             find_and_display_image("3.png", img_dir_ch4)
+
+        # CHAPTER 5 MAPPING (Stress due to bending - using same HW4 images)
+        elif lec_id == "SM_5_1":
+            st.info(st.session_state.current_prob['statement'])
+            find_and_display_image("1.png", img_dir_ch4)
+        elif lec_id == "SM_5_2":
+            st.info(st.session_state.current_prob['statement'])
+            find_and_display_image("2.png", img_dir_ch4)
+        elif lec_id == "SM_5_3":
+            st.info(st.session_state.current_prob['statement'])
+            find_and_display_image("3.png", img_dir_ch4)
             
         # STANDARD RENDERING FOR OTHER PROBLEMS
-        elif any(substring in lec_id for substring in ["SM_1_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
+        elif any(substring in lec_id for substring in ["SM_1_", "SM_6_", "SM_7_", "SM_8_"]):
             st.info(st.session_state.current_prob['statement'])
             st.image(render_problem_diagram(st.session_state.current_prob))
         
