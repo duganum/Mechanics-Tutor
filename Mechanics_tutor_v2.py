@@ -72,11 +72,14 @@ if st.session_state.page == "landing":
 
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
+    
+    # Categorize problems: ensure the newly added SM_1_2, SM_1_3, etc., group with Chapter 1
     categories = {}
     for p in PROBLEMS:
-        cat_main = p.get('category', 'General Review').split(":")[0].strip()
-        if cat_main not in categories: categories[cat_main] = []
-        categories[cat_main].append(p)
+        cat_name = p.get('category', 'General Review').split(":")[0].strip()
+        if cat_name not in categories:
+            categories[cat_name] = []
+        categories[cat_name].append(p)
 
     for cat_name, probs in categories.items():
         st.markdown(f"#### {cat_name}")
@@ -86,6 +89,7 @@ if st.session_state.page == "landing":
                 if i + j < len(probs):
                     prob = probs[i + j]
                     with cols[j]:
+                        # Connect the button to the problem ID and switch to chat page
                         if st.button(f"**{prob.get('hw_subtitle', 'Prob')}**\n({prob['id']})", key=f"btn_{prob['id']}", use_container_width=True):
                             st.session_state.current_prob = prob
                             st.session_state.page = "chat"
@@ -93,7 +97,9 @@ if st.session_state.page == "landing":
 
 # --- Page 2: Problem Solving Chat ---
 elif st.session_state.page == "chat":
-    st.write("Problem solving mode...")
+    st.write(f"### Solving: {st.session_state.current_prob['id']}")
+    st.write(st.session_state.current_prob['statement'])
+    # Logic for solving chat would go here
     if st.button("Back to Menu"):
         st.session_state.page = "landing"
         st.rerun()
@@ -106,11 +112,9 @@ elif st.session_state.page == "lecture":
     
     col_sim, col_side = st.columns([1, 1])
     
-    # Left Column: Simulation
     with col_sim:
         params = {'lec_id': lec_id}
         
-        # Logic for Beam and Deflection Labs
         if lec_id in ["SM_4", "SM_5", "SM_6", "SM_7"]:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
@@ -124,27 +128,19 @@ elif st.session_state.page == "lecture":
                 params.update({'P': p_val, 'L_pos': l_pos})
                 st.metric("Applied Load (P)", f"{p_val} kN")
 
-        # Logic for Combined Load (Mohr's Circle)
         elif lec_id == "SM_8":
             sig_x = st.slider("Normal Stress (σx) [MPa]", -500, 500, 100)
             sig_y = st.slider("Normal Stress (σy) [MPa]", -500, 500, 50)
             tau_xy = st.slider("Shear Stress (τxy) [MPa] (CCW is '-')", -100, 100, 40)
             
-            # Calculations for results
             center = (sig_x + sig_y) / 2
             radius = np.sqrt(((sig_x - sig_y)/2)**2 + tau_xy**2)
             sig_1 = center + radius
             sig_2 = center - radius
             theta_p = 0.5 * np.degrees(np.arctan2(2*tau_xy, sig_x - sig_y))
             
-            # Update params for the renderer (Mohr's Circle only)
-            params.update({
-                'P': sig_x, 
-                'sigma_y': sig_y, 
-                'tau_val': tau_xy
-            }) 
+            params.update({'P': sig_x, 'sigma_y': sig_y, 'tau_val': tau_xy}) 
             
-            # Display Results as Metrics
             m1, m2, m3 = st.columns(3)
             m1.metric("Principal σ₁", f"{sig_1:.1f} MPa")
             m2.metric("Principal σ₂", f"{sig_2:.1f} MPa")
@@ -154,7 +150,6 @@ elif st.session_state.page == "lecture":
             m4.metric("Orientation θp", f"{theta_p:.1f}°")
             m5.metric("Orientation θs", f"{(theta_p - 45):.1f}°")
 
-        # Logic for SM_1, SM_2, SM_3
         else:
             p_val = st.slider("Magnitude / Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area / Geometry (A) [mm²]", 100, 2000, 817)
@@ -162,10 +157,8 @@ elif st.session_state.page == "lecture":
             params.update({'P': p_val, 'A': a_val, 'stress': stress})
             st.metric("Calculated Stress", f"{stress:.2f} MPa")
 
-        # The renderer will now only show the Mohr's Circle for SM_8
         st.image(render_lecture_visual(topic, params))
 
-    # Right Column: Discussion
     with col_side:
         st.subheader("💬 Socratic Discussion")
         if st.session_state.lecture_session is None:
@@ -187,11 +180,10 @@ elif st.session_state.page == "lecture":
                 st.session_state.lecture_session.send_message(lecture_input)
                 st.rerun()
 
-    # Bottom Full Width: Analysis
     st.markdown("---")
     st.subheader("📝 Session Analysis")
-    st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation and physical principles.")
-    user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Please provide feedback to your professor...", height=150)
+    st.info("Work through the derivation with the tutor above. Focus on using correct LaTeX notation.")
+    user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Provide feedback...", height=150)
     
     col_submit, col_exit = st.columns(2)
     with col_submit:
@@ -199,7 +191,7 @@ elif st.session_state.page == "lecture":
             if st.session_state.lecture_session:
                 history_text = "\n".join([f"{m.role}: {m.parts[0].text}" for m in st.session_state.lecture_session.history])
                 full_history = f"{history_text}\n\n--- STUDENT FEEDBACK ---\n{user_feedback}"
-                with st.spinner("Analyzing session..."):
+                with st.spinner("Analyzing..."):
                     try:
                         report = analyze_and_send_report(
                             user_name=str(st.session_state.user_name),
