@@ -73,23 +73,35 @@ if st.session_state.page == "landing":
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
     
-    # Filter for specifically the 3 generated problems for Chapter 1
-    # SM_1_2: Axial Elongation | SM_1_3: Thermal Stress | SM_1_4: Poisson's Ratio
-    chapter_1_ids = ["SM_1_2", "SM_1_3", "SM_1_4"]
-    ch1_probs = [p for p in PROBLEMS if p['id'] in chapter_1_ids]
-    
-    st.markdown("#### Design Properties of Materials")
-    cols = st.columns(3)
-    for idx, prob in enumerate(ch1_probs):
-        with cols[idx]:
-            if st.button(f"**{prob.get('hw_subtitle', 'FE Prob')}**\n({prob['id']})", key=f"btn_{prob['id']}", use_container_width=True):
-                # Redirect to 'lecture' mode to ensure Socratic Discussion is available
-                st.session_state.lecture_topic = f"Problem {prob['id']}: {prob['hw_subtitle']}"
-                st.session_state.lecture_id = prob['id']
-                st.session_state.current_prob = prob # Store problem context
-                st.session_state.page = "lecture"
-                st.session_state.lecture_session = None
-                st.rerun()
+    # Restored Categorization Logic
+    categories = {}
+    for p in PROBLEMS:
+        cat_main = p.get('category', 'General Review').split(":")[0].strip()
+        if cat_main not in categories: categories[cat_main] = []
+        categories[cat_main].append(p)
+
+    for cat_name, probs in categories.items():
+        st.markdown(f"#### {cat_name}")
+        
+        # Apply the specific constraint for Chapter 1
+        display_probs = probs
+        if cat_name == "Design Properties of Materials":
+            chapter_1_ids = ["SM_1_2", "SM_1_3", "SM_1_4"]
+            display_probs = [p for p in probs if p['id'] in chapter_1_ids]
+        
+        for i in range(0, len(display_probs), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i + j < len(display_probs):
+                    prob = display_probs[i + j]
+                    with cols[j]:
+                        if st.button(f"**{prob.get('hw_subtitle', 'Prob')}**\n({prob['id']})", key=f"btn_{prob['id']}", use_container_width=True):
+                            st.session_state.lecture_topic = f"Problem {prob['id']}: {prob['hw_subtitle']}"
+                            st.session_state.lecture_id = prob['id']
+                            st.session_state.current_prob = prob
+                            st.session_state.page = "lecture"
+                            st.session_state.lecture_session = None
+                            st.rerun()
 
 # --- Page 3: Full Socratic Lecture & Problem Flow ---
 elif st.session_state.page == "lecture":
@@ -102,10 +114,9 @@ elif st.session_state.page == "lecture":
     with col_sim:
         params = {'lec_id': lec_id}
         
-        # Check if we are in one of the 3 specific FE problems
-        if lec_id in ["SM_1_2", "SM_1_3", "SM_1_4"]:
+        # Rendering for Problem-based IDs
+        if any(substring in lec_id for substring in ["SM_1_", "SM_2_", "SM_3_", "SM_4_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
             st.info(st.session_state.current_prob['statement'])
-            # Render a generic diagram for these problems
             st.image(render_problem_diagram(st.session_state.current_prob))
         
         # Standard Simulation Logic for Lecture IDs
@@ -137,7 +148,6 @@ elif st.session_state.page == "lecture":
             st.image(render_lecture_visual(topic, params))
 
         else:
-            # Fallback for SM_1, SM_2, SM_3
             p_val = st.slider("Magnitude / Force (P) [kN]", 1, 100, 22)
             a_val = st.slider("Area / Geometry (A) [mm²]", 100, 2000, 817)
             stress = (p_val * 1000) / a_val
@@ -149,7 +159,7 @@ elif st.session_state.page == "lecture":
         st.subheader("💬 Socratic Discussion")
         if st.session_state.lecture_session is None:
             sys_msg = f"You are Professor Dugan Um. Guide the student through: {topic}."
-            initial_greeting = f"Hello! Let's analyze {topic}. Based on the parameters provided, how would you start the derivation?"
+            initial_greeting = f"Hello! Let's analyze {topic}. How would you start the derivation?"
             st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
                 {"role": "model", "parts": [initial_greeting]}
             ])
@@ -168,7 +178,6 @@ elif st.session_state.page == "lecture":
 
     st.markdown("---")
     st.subheader("📝 Session Analysis")
-    st.info("Ensure you have discussed the physical principles before submitting.")
     user_feedback = st.text_area("Notes for Dr. Um:", placeholder="Provide feedback...", height=150)
     
     col_submit, col_exit = st.columns(2)
