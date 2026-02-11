@@ -56,11 +56,29 @@
   {
     "id": "SM_3_1",
     "hw_title": "Chapter 3",
-    "hw_subtitle": "Torsional Shear Stress and Torsional Deformation",
+    "hw_subtitle": "Direct Shear Stress",
     "category": "Torsional Shear Stress and Torsional Deformation",
-    "statement": "A solid steel shaft with a diameter of $50\\text{ mm}$ is subjected to a torque of $1.5\\text{ kNm}$. Calculate the maximum shear stress $\\tau_{max}$ in the shaft.",
-    "targets": { "tau_max": 61.1 },
-    "required_units": ["MPa"]
+    "statement": "Figure P4-9 shows the end of the vertical shaft for a rotary lawn mower. Compute the maximum torsional shear stress in the shaft if it is transmitting $7.5\\text{ hp}$ to the blade when rotating at $2200\\text{ rpm}$. Specify a suitable steel for the shaft.",
+    "targets": { "tau_max": 25.9 },
+    "required_units": ["ksi"]
+  },
+  {
+    "id": "SM_3_2",
+    "hw_title": "Chapter 3",
+    "hw_subtitle": "Direct Shear Stress",
+    "category": "Torsional Shear Stress and Torsional Deformation",
+    "statement": "Figure P4-10 shows a stepped shaft in torsion. The larger section also has a hole drilled through. Compute the maximum shear stress at the step for an applied torque of $7500\\text{ lb·in}$.",
+    "targets": { "tau_max": 14.1 },
+    "required_units": ["ksi"]
+  },
+  {
+    "id": "SM_3_3",
+    "hw_title": "Chapter 3",
+    "hw_subtitle": "Direct Shear Stress",
+    "category": "Torsional Shear Stress and Torsional Deformation",
+    "statement": "Compute the angle of twist of the free end relative to the fixed end of the steel bar shown in Figure P4-27. Use $G=80\\text{ GPa}$.",
+    "targets": { "theta": 0.052 },
+    "required_units": ["rad"]
   },
   {
     "id": "SM_4_1",
