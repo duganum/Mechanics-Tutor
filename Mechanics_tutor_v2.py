@@ -3,6 +3,7 @@ import json
 import re
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 # Import custom tools - Ensure these files are in the same folder
 from logic_v2_GitHub import get_gemini_model, load_problems, check_numeric_match, analyze_and_send_report
@@ -73,7 +74,6 @@ if st.session_state.page == "landing":
     st.markdown("---")
     st.subheader("📝 FE Exam Review Problems")
     
-    # Restored Categorization Logic
     categories = {}
     for p in PROBLEMS:
         cat_main = p.get('category', 'General Review').split(":")[0].strip()
@@ -83,7 +83,6 @@ if st.session_state.page == "landing":
     for cat_name, probs in categories.items():
         st.markdown(f"#### {cat_name}")
         
-        # Apply the specific constraint for Chapter 1
         display_probs = probs
         if cat_name == "Design Properties of Materials":
             chapter_1_ids = ["SM_1_2", "SM_1_3", "SM_1_4"]
@@ -114,8 +113,19 @@ elif st.session_state.page == "lecture":
     with col_sim:
         params = {'lec_id': lec_id}
         
-        # Rendering for Problem-based IDs
-        if any(substring in lec_id for substring in ["SM_1_", "SM_2_", "SM_3_", "SM_4_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
+        # REVISED: Specific image handling for SM_2 problems
+        if lec_id == "SM_2_1":
+            st.info(st.session_state.current_prob['statement'])
+            st.image("1.png") # Uses image '1' from your directory
+        elif lec_id == "SM_2_2":
+            st.info(st.session_state.current_prob['statement'])
+            st.image("image_d1f503.png") # Alloy selection image
+        elif lec_id == "SM_2_3":
+            st.info(st.session_state.current_prob['statement'])
+            st.image("image_d1f598.png") # Thermal expansion bars image
+            
+        # Standard rendering for other Problem-based IDs
+        elif any(substring in lec_id for substring in ["SM_1_", "SM_3_", "SM_4_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
             st.info(st.session_state.current_prob['statement'])
             st.image(render_problem_diagram(st.session_state.current_prob))
         
