@@ -4,27 +4,54 @@
     "hw_title": "Chapter 1",
     "hw_subtitle": "Design Properties of Materials",
     "category": "Design Properties of Materials",
-    "statement": "A specimen of titanium alloy is tested in tension. If the engineering strain is $0.002$ and the Modulus of Elasticity is $110\\text{ GPa}$, calculate the corresponding engineering stress. Assume the material remains in the elastic region.",
-    "targets": { "sigma": 220 },
+    "statement": "A 2-meter long steel rod with a cross-sectional area of $400\\text{ mm}^2$ is subjected to an axial tensile load of $80\\text{ kN}$. If $E = 200\\text{ GPa}$, calculate the total elongation $\\delta$.",
+    "targets": { "delta": 2.0 },
+    "required_units": ["mm"]
+  },
+  {
+    "id": "SM_1_2",
+    "hw_title": "Chapter 1",
+    "hw_subtitle": "Design Properties of Materials",
+    "category": "Design Properties of Materials",
+    "statement": "An aluminum bar is constrained between two rigid walls. If the temperature increases by $50^\\circ\\text{C}$, calculate the magnitude of the thermal stress $\\sigma$ induced. ($E = 70\\text{ GPa}$, $\\alpha = 23 \\times 10^{-6}/^\\circ\\text{C}$)",
+    "targets": { "sigma": 80.5 },
     "required_units": ["MPa"]
+  },
+  {
+    "id": "SM_1_3",
+    "hw_title": "Chapter 1",
+    "hw_subtitle": "Design Properties of Materials",
+    "category": "Design Properties of Materials",
+    "statement": "A 10-mm diameter titanium specimen is pulled in tension. The axial strain is $0.002$. If $\\nu = 0.33$, calculate the absolute change in diameter $|\\Delta d|$.",
+    "targets": { "delta_d": 0.0066 },
+    "required_units": ["mm"]
   },
   {
     "id": "SM_2_1",
     "hw_title": "Chapter 2",
     "hw_subtitle": "Direct Stress, Deformation, and Design",
     "category": "Direct Stress, Deformation, and Design",
-    "statement": "A 60-kg woman holds a 9-kg package as she stands within an elevator which briefly accelerates upward at a rate of $g/4$. Determine the force $R$ which the elevator floor exerts on her feet. Use $g = 9.81\\text{ m/s}^2$.",
-    "targets": { "R": 846.1 },
-    "required_units": ["N"]
+    "statement": "A shelf is being designed to hold crates having a total mass of $1840\\text{ kg}$. Two circular support rods hold the shelf. Assume that the center of gravity of the crates is at the middle of the shelf. Specify the required diameter $d$ of the circular rods to limit the stress to $110\\text{ MPa}$.",
+    "targets": { "d": 16.2 },
+    "required_units": ["mm"]
   },
   {
     "id": "SM_2_2",
     "hw_title": "Chapter 2",
     "hw_subtitle": "Direct Stress, Deformation, and Design",
     "category": "Direct Stress, Deformation, and Design",
-    "statement": "A 60-kg woman holds a 9-kg package as she stands within an elevator which briefly accelerates upward at a rate of $g/4$. Determine the lifting force $L$ which she exerts on the package during the acceleration. Use $g = 9.81\\text{ m/s}^2$.",
-    "targets": { "L": 110.4 },
-    "required_units": ["N"]
+    "statement": "Specify a suitable aluminum alloy for the member $AB$ in the provided assembly (square $20\\text{ mm}$ cross-section) if the $12.5\\text{ kN}$ load is to be repeated many times. Consider only the square part near the middle of the member.",
+    "targets": { "stress_AB": 52.1 },
+    "required_units": ["MPa"]
+  },
+  {
+    "id": "SM_2_3",
+    "hw_title": "Chapter 2",
+    "hw_subtitle": "Direct Stress, Deformation, and Design",
+    "category": "Direct Stress, Deformation, and Design",
+    "statement": "Figure P3–64 shows two bars of different materials separated by $0.50\\text{ mm}$ when the temperature is $20^\\circ\\text{C}$. At what temperature $T$ would they touch? (AISI 430 Stainless steel: $L=2.8\\text{ m}, \\alpha=10.4 \\times 10^{-6}/^\\circ\\text{C}$; Brass: $L=1.9\\text{ m}, \\alpha=20.5 \\times 10^{-6}/^\\circ\\text{C}$)",
+    "targets": { "T": 27.3 },
+    "required_units": ["°C"]
   },
   {
     "id": "SM_3_1",
@@ -79,32 +106,5 @@
     "statement": "A point in a structural member is subjected to a tensile stress $\\sigma_x = 80\\text{ MPa}$ and a shear stress $\\tau_{xy} = 30\\text{ MPa}$. Using Mohr's Circle, determine the maximum principal stress $\\sigma_1$.",
     "targets": { "sigma_1": 90.0 },
     "required_units": ["MPa"]
-  },
-  {
-    "id": "SM_1_2",
-    "hw_title": "Chapter 1",
-    "hw_subtitle": "Design Properties of Materials",
-    "category": "Design Properties of Materials",
-    "statement": "A 2-meter long steel rod with a cross-sectional area of $400\\text{ mm}^2$ is subjected to an axial tensile load of $80\\text{ kN}$. If $E = 200\\text{ GPa}$, calculate the total elongation $\\delta$.",
-    "targets": { "delta": 2.0 },
-    "required_units": ["mm"]
-  },
-  {
-    "id": "SM_1_3",
-    "hw_title": "Chapter 1",
-    "hw_subtitle": "Design Properties of Materials",
-    "category": "Design Properties of Materials",
-    "statement": "An aluminum bar is constrained between two rigid walls. If the temperature increases by $50^\\circ\\text{C}$, calculate the magnitude of the thermal stress $\\sigma$ induced. ($E = 70\\text{ GPa}$, $\\alpha = 23 \\times 10^{-6}/^\\circ\\text{C}$)",
-    "targets": { "sigma": 80.5 },
-    "required_units": ["MPa"]
-  },
-  {
-    "id": "SM_1_4",
-    "hw_title": "Chapter 1",
-    "hw_subtitle": "Design Properties of Materials",
-    "category": "Design Properties of Materials",
-    "statement": "A 10-mm diameter titanium specimen is pulled in tension. The axial strain is $0.002$. If $\\nu = 0.33$, calculate the absolute change in diameter $|\\Delta d|$.",
-    "targets": { "delta_d": 0.0066 },
-    "required_units": ["mm"]
   }
 ]
