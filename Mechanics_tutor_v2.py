@@ -113,28 +113,33 @@ elif st.session_state.page == "lecture":
     with col_sim:
         params = {'lec_id': lec_id}
         
-        # CORRECTED: Exact path based on GitHub file structure
-        img_dir = "images/HW 2 (direct stress)/images"
-        
+        # Enhanced Path Handling for Streamlit Cloud and Local
+        # Checking multiple directory variations to ensure image is found
+        def find_and_display_image(filename):
+            paths_to_check = [
+                os.path.join("images", "HW 2 (direct stress)", "images", filename),
+                os.path.join("images/HW 2 (direct stress)/images", filename),
+                filename
+            ]
+            for path in paths_to_check:
+                if os.path.exists(path):
+                    st.image(path)
+                    return True
+            st.error(f"Error: {filename} not found in path: {paths_to_check[0]}")
+            return False
+
         if lec_id == "SM_2_1":
             st.info(st.session_state.current_prob['statement'])
-            img_path = os.path.join(img_dir, "1.png")
-            if os.path.exists(img_path): st.image(img_path)
-            else: st.error(f"Image not found at path: {img_path}")
+            find_and_display_image("1.png")
             
         elif lec_id == "SM_2_2":
             st.info(st.session_state.current_prob['statement'])
-            img_path = os.path.join(img_dir, "image_d1f503.png")
-            if os.path.exists(img_path): st.image(img_path)
-            else: st.error(f"Image not found at path: {img_path}")
+            find_and_display_image("image_d1f503.png")
             
         elif lec_id == "SM_2_3":
             st.info(st.session_state.current_prob['statement'])
-            img_path = os.path.join(img_dir, "image_d1f598.png")
-            if os.path.exists(img_path): st.image(img_path)
-            else: st.error(f"Image not found at path: {img_path}")
+            find_and_display_image("image_d1f598.png")
             
-        # Standard rendering for other Problem-based IDs
         elif any(substring in lec_id for substring in ["SM_1_", "SM_3_", "SM_4_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
             st.info(st.session_state.current_prob['statement'])
             st.image(render_problem_diagram(st.session_state.current_prob))
@@ -178,7 +183,13 @@ elif st.session_state.page == "lecture":
     with col_side:
         st.subheader("💬 Socratic Discussion")
         if st.session_state.lecture_session is None:
-            sys_msg = f"You are Professor Dugan Um. Guide the student through: {topic}."
+            # INJECT PROBLEM STATEMENT INTO AI CONTEXT
+            prob_statement = st.session_state.get('current_prob', {}).get('statement', '')
+            sys_msg = f"You are Professor Dugan Um. Guide the student through: {topic}. "
+            if prob_statement:
+                sys_msg += f"The problem data is as follows: {prob_statement}. "
+            sys_msg += "Do not give the answer directly. Use Socratic questioning to guide them."
+            
             initial_greeting = f"Hello! Let's analyze {topic}. How would you start the derivation?"
             st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
                 {"role": "model", "parts": [initial_greeting]}
