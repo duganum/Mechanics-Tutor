@@ -85,7 +85,8 @@ if st.session_state.page == "landing":
         
         display_probs = probs
         if cat_name == "Design Properties of Materials":
-            chapter_1_ids = ["SM_1_2", "SM_1_3", "SM_1_4"]
+            # UPDATED: Added SM_1_1 to the list so all 3 problems show up
+            chapter_1_ids = ["SM_1_1", "SM_1_2", "SM_1_3"]
             display_probs = [p for p in probs if p['id'] in chapter_1_ids]
         
         for i in range(0, len(display_probs), 3):
@@ -132,11 +133,11 @@ elif st.session_state.page == "lecture":
             
         elif lec_id == "SM_2_2":
             st.info(st.session_state.current_prob['statement'])
-            find_and_display_image("2.png") # Updated to match GitHub filenames 2.png
+            find_and_display_image("2.png") 
             
         elif lec_id == "SM_2_3":
             st.info(st.session_state.current_prob['statement'])
-            find_and_display_image("3.png") # Updated to match GitHub filenames 3.png
+            find_and_display_image("3.png") 
             
         elif any(substring in lec_id for substring in ["SM_1_", "SM_3_", "SM_4_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
             st.info(st.session_state.current_prob['statement'])
