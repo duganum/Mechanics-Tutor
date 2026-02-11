@@ -126,15 +126,16 @@ elif st.session_state.page == "lecture":
 
         # Logic for Combined Load (Mohr's Circle)
         elif lec_id == "SM_8":
-            sig_x = st.slider("Normal Stress (σx) [MPa]", -200, 200, 100)
-            sig_y = st.slider("Normal Stress (σy) [MPa]", -200, 200, 50) # Added slider for σy
-            tau_xy = st.slider("Shear Stress (τxy) [MPa]", 0, 100, 40)
+            sig_x = st.slider("Normal Stress (σx) [MPa]", -500, 500, 100)
+            sig_y = st.slider("Normal Stress (σy) [MPa]", -500, 500, 50)
+            # REVISED: Updated range and CCW instruction
+            tau_xy = st.slider("Shear Stress (τxy) [MPa] (CCW is '-')", -100, 100, 40)
             
-            # Map values for the SM_8 renderer
+            # Map values for the updated SM_8 renderer
             params.update({
                 'P': sig_x, 
                 'sigma_y': sig_y, 
-                'A': tau_xy * 50
+                'tau_val': tau_xy
             }) 
             st.metric("State of Stress", f"σx={sig_x}MPa, σy={sig_y}MPa, τxy={tau_xy}MPa")
 
