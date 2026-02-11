@@ -7,7 +7,7 @@ def render_lecture_visual(topic, params=None):
     if params is None: params = {}
     lec_id = params.get('lec_id', 'SM_0')
     
-    # SM_1 to SM_7 logic remains unchanged
+    # SM_1 to SM_7 logic remains unchanged as per instructions
     if lec_id == "SM_1":
         fig, ax = plt.subplots(figsize=(4, 3), dpi=150)
         strain_coords = np.linspace(0, 0.5, 100)
@@ -96,6 +96,7 @@ def render_lecture_visual(topic, params=None):
         ax_defl.set_xlim(-0.1, 1.1); ax_defl.axis('off')
         plt.tight_layout(); return save_to_buffer(fig)
 
+    # FINAL REVISION: SM_8 with correct Normal Surface Projections and Complementary Shear
     elif lec_id == "SM_8":
         sig_x = params.get('P', 0)
         sig_y = params.get('sigma_y', 0)
@@ -126,26 +127,32 @@ def render_lecture_visual(topic, params=None):
             rect.set_transform(tr)
             ax.add_patch(rect)
             
-            # Normal Arrows (Normal to surface)
+            # Normal Arrows (Projecting Normal to surface faces)
             if mode != 'shear':
-                # Sigma X (Right/Left faces)
-                ax.annotate('', xy=(0.5 if s_x >=0 else 0.1, 0), xytext=(0.3 if s_x>=0 else 0.7, 0),
+                # Sigma X faces (Right & Left)
+                # Right
+                ax.annotate('', xy=(0.5 if s_x >=0 else 0.3, 0), xytext=(0.3 if s_x>=0 else 0.5, 0),
                             arrowprops=dict(arrowstyle='->' if s_x>=0 else '<-', color='blue', lw=1.5), transform=tr)
-                ax.text(0.55 if s_x >=0 else 0.1, 0.05, f'{s_x:.0f}', transform=tr, fontsize=7, color='blue', fontweight='bold')
-                # Sigma Y (Top/Bottom faces)
-                ax.annotate('', xy=(0, 0.5 if s_y >=0 else 0.1), xytext=(0, 0.3 if s_y>=0 else 0.7),
+                ax.text(0.55 if s_x >=0 else 0.25, 0.05, f'{s_x:.0f}', transform=tr, fontsize=7, color='blue', fontweight='bold')
+                
+                # Sigma Y faces (Top & Bottom)
+                # Top
+                ax.annotate('', xy=(0, 0.5 if s_y >=0 else 0.3), xytext=(0, 0.3 if s_y>=0 else 0.5),
                             arrowprops=dict(arrowstyle='->' if s_y>=0 else '<-', color='purple', lw=1.5), transform=tr)
-                ax.text(0.05, 0.55 if s_y >=0 else 0.1, f'{s_y:.0f}', transform=tr, fontsize=7, color='purple', fontweight='bold')
+                ax.text(0.05, 0.55 if s_y >=0 else 0.25, f'{s_y:.0f}', transform=tr, fontsize=7, color='purple', fontweight='bold')
 
-            # Shear Arrows (Parallel to surface)
+            # Complementary Shear Arrows (For Original and Max Shear)
             if (t_xy != 0 or mode == 'shear'):
                 val = t_xy if mode != 'shear' else tau_max
-                # Right face
-                ax.annotate('', xy=(0.35, 0.25 if val >=0 else -0.25), xytext=(0.35, -0.25 if val >=0 else 0.25),
+                # Right face shear (y-direction)
+                ax.annotate('', xy=(0.3, 0.25 if val >=0 else -0.25), xytext=(0.3, -0.25 if val >=0 else 0.25),
                             arrowprops=dict(arrowstyle='->', color='orange', lw=1.5), transform=tr)
-                # Top face
-                ax.annotate('', xy=(0.25 if val < 0 else -0.25, 0.35), xytext=(-0.25 if val < 0 else 0.25, 0.35),
+                
+                # Top face shear (x-direction, complementary to right face for equilibrium)
+                # If Right face shear is (+), Top face must be (-) to maintain zero moment
+                ax.annotate('', xy=(-0.25 if val >=0 else 0.25, 0.3), xytext=(0.25 if val >=0 else -0.25, 0.3),
                             arrowprops=dict(arrowstyle='->', color='orange', lw=1.5), transform=tr)
+                
                 ax.text(0.4, 0, f'{val:.0f}', transform=tr, fontsize=7, color='orange')
 
             ax.set_title(f"{title}\nθ = {angle_deg:.1f}°", fontsize=8)
