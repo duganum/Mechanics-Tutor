@@ -96,60 +96,73 @@ def render_lecture_visual(topic, params=None):
         ax_defl.set_xlim(-0.1, 1.1); ax_defl.axis('off')
         plt.tight_layout(); return save_to_buffer(fig)
 
-    # REVISED: SM_8: Combined Load with Rotating Elements
+    # REVISED SM_8: Now supports Sigma X, Sigma Y, and Shear Stress
     elif lec_id == "SM_8":
-        sig_x = params.get('P', 22)
-        tau_xy = params.get('A', 817) / 50
-        sig_y = 0
+        sig_x = params.get('P', 0)        # Stored from σx slider
+        sig_y = params.get('sigma_y', 0)  # New: Stored from σy slider
+        tau_xy = params.get('A', 0) / 50  # Existing scaling logic for τxy
         
         center = (sig_x + sig_y) / 2
         radius = np.sqrt(((sig_x - sig_y) / 2)**2 + tau_xy**2)
+        
+        # Guard against zero radius
+        if radius == 0: radius = 0.001
+
         sig_1 = center + radius
+        sig_2 = center - radius
         tau_max = radius
-        # Calculate theta_p in radians (Mohr's circle angle is 2*theta)
+        
+        # Mohr's circle angle (2*theta)
         theta_p_rad = 0.5 * np.arctan2(2 * tau_xy, sig_x - sig_y)
         theta_p_deg = np.degrees(theta_p_rad)
-        theta_s_deg = theta_p_deg - 45 # Max shear orientation
+        theta_s_deg = theta_p_deg - 45 
 
         fig, axs = plt.subplots(2, 2, figsize=(6, 6), dpi=150)
         
-        def draw_rotated_element(ax, angle_deg, title, main_stress, stress_type='tensile'):
+        def draw_rotated_element(ax, angle_deg, title, stress_val, stress_type='tensile'):
             ax.set_aspect('equal')
             ax.set_xlim(-1, 1); ax.set_ylim(-1, 1)
-            # Create a square element
             rect = plt.Rectangle((-0.3, -0.3), 0.6, 0.6, fill=False, lw=2, 
                                  color='green' if stress_type=='tensile' else 'orange')
-            # Apply rotation transform
             t = mtransforms.Affine2D().rotate_deg_around(0, 0, angle_deg) + ax.transData
             rect.set_transform(t)
             ax.add_patch(rect)
             
-            # Draw stress arrow on rotated face
             rad = np.radians(angle_deg)
-            # End points for the arrow
             x_tip, y_tip = 0.5 * np.cos(rad), 0.5 * np.sin(rad)
-            ax.annotate(f'{main_stress:.1f}', xy=(x_tip, y_tip), xytext=(0,0),
+            ax.annotate(f'{stress_val:.1f}', xy=(x_tip, y_tip), xytext=(0,0),
                         arrowprops=dict(arrowstyle='->', color='black', lw=1.5),
                         transform=ax.transData)
             ax.set_title(f"{title}\nθ = {angle_deg:.1f}°", fontsize=8)
             ax.axis('off')
 
-        # Mohr's Circle
+        # Mohr's Circle Plotting
         ax_mohr = axs[1, 0]
         c = plt.Circle((center, 0), radius, fill=False, color='red', lw=1.5)
         ax_mohr.add_patch(c)
-        ax_mohr.axhline(0, color='black', lw=0.8); ax_mohr.axvline(0, color='black', lw=0.8)
+        ax_mohr.axhline(0, color='black', lw=0.8)
+        ax_mohr.axvline(0, color='black', lw=0.8)
+        
+        # Plot points (σx, τxy) and (σy, -τxy)
         ax_mohr.plot([sig_x, sig_y], [tau_xy, -tau_xy], 'ko--', ms=4)
+        ax_mohr.plot(center, 0, 'rx', ms=5) # Center point
+        
+        # Set dynamic limits for Mohr's Circle
+        lim = radius * 1.5
+        ax_mohr.set_xlim(center - lim, center + lim)
+        ax_mohr.set_ylim(-lim, lim)
         ax_mohr.set_title("Mohr's Circle", fontsize=8)
+        ax_mohr.grid(True, linestyle=':', alpha=0.6)
 
-        # Original Element (Static 0 deg)
+        # Original Element
         draw_rotated_element(axs[0, 0], 0, "Original Element", sig_x)
-        # Principal Element (Rotated by theta_p)
+        # Principal Element
         draw_rotated_element(axs[0, 1], theta_p_deg, "Principal Element", sig_1, 'tensile')
-        # Max Shear Element (Rotated by theta_s)
+        # Max Shear Element
         draw_rotated_element(axs[1, 1], theta_s_deg, "Max Shear Element", tau_max, 'shear')
 
-        plt.tight_layout(); return save_to_buffer(fig)
+        plt.tight_layout()
+        return save_to_buffer(fig)
 
     return save_to_buffer(plt.figure(figsize=(3,3)))
 
