@@ -96,11 +96,11 @@ def render_lecture_visual(topic, params=None):
         ax_defl.set_xlim(-0.1, 1.1); ax_defl.axis('off')
         plt.tight_layout(); return save_to_buffer(fig)
 
-    # REVISED SM_8: Removed element drawings, keeping only Mohr's Circle
+    # REVISED SM_8: Focused Mohr's Circle with State Labeled Points
     elif lec_id == "SM_8":
         sig_x = params.get('P', 0)
         sig_y = params.get('sigma_y', 0)
-        tau_xy = params.get('tau_val', 0)
+        tau_xy = params.get('tau_val', 0) # CCW is negative
         
         center = (sig_x + sig_y) / 2
         radius = np.sqrt(((sig_x - sig_y) / 2)**2 + tau_xy**2)
@@ -109,27 +109,32 @@ def render_lecture_visual(topic, params=None):
         fig, ax_mohr = plt.subplots(figsize=(5, 5), dpi=150)
         
         # Draw Mohr's Circle
-        circle = plt.Circle((center, 0), radius, fill=False, color='red', lw=2)
+        circle = plt.Circle((center, 0), radius, fill=False, color='red', lw=2, zorder=3)
         ax_mohr.add_patch(circle)
         
-        # Axis lines
-        ax_mohr.axhline(0, color='black', lw=1)
-        ax_mohr.axvline(0, color='black', lw=1)
+        # Axis lines (Sigma and Tau)
+        ax_mohr.axhline(0, color='black', lw=1.2, zorder=2)
+        ax_mohr.axvline(0, color='black', lw=1.2, zorder=2)
         
-        # Plot points (sig_x, tau_xy) and (sig_y, -tau_xy)
-        ax_mohr.plot([sig_x, sig_y], [tau_xy, -tau_xy], 'ko--', ms=6, label='X-Y Plane State')
-        ax_mohr.plot(center, 0, 'rx', ms=8, label='Center')
+        # Plot Diameter connecting X-face and Y-face
+        # X: (sig_x, tau_xy) | Y: (sig_y, -tau_xy)
+        ax_mohr.plot([sig_x, sig_y], [tau_xy, -tau_xy], 'ko--', ms=6, lw=1.5, label='Diameter (X-Y Plane)')
+        ax_mohr.plot(center, 0, 'rx', ms=8, label=f'Center: {center:.1f}')
+        
+        # Labels for X and Y faces to show complementary shear
+        ax_mohr.text(sig_x, tau_xy, f' X({sig_x}, {tau_xy})', fontweight='bold', va='bottom', ha='left')
+        ax_mohr.text(sig_y, -tau_xy, f' Y({sig_y}, {-tau_xy})', fontweight='bold', va='top', ha='right')
         
         # Formatting
-        lim = radius * 1.5
+        lim = radius * 1.6
         ax_mohr.set_xlim(center - lim, center + lim)
         ax_mohr.set_ylim(-lim, lim)
         ax_mohr.set_aspect('equal')
         ax_mohr.set_xlabel("Normal Stress σ (MPa)")
         ax_mohr.set_ylabel("Shear Stress τ (MPa)")
-        ax_mohr.set_title(f"SM_8: Mohr's Circle Analysis", fontsize=10)
+        ax_mohr.set_title(f"SM_8: Mohr's Circle for Combined Loading", fontsize=10)
         ax_mohr.grid(True, linestyle=':', alpha=0.7)
-        ax_mohr.legend(fontsize=8)
+        ax_mohr.legend(loc='upper right', fontsize=8)
 
         plt.tight_layout()
         return save_to_buffer(fig)
