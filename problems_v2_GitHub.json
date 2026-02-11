@@ -79,5 +79,32 @@
     "statement": "A point in a structural member is subjected to a tensile stress $\\sigma_x = 80\\text{ MPa}$ and a shear stress $\\tau_{xy} = 30\\text{ MPa}$. Using Mohr's Circle, determine the maximum principal stress $\\sigma_1$.",
     "targets": { "sigma_1": 90.0 },
     "required_units": ["MPa"]
+  },
+  {
+    "id": "SM_1_2",
+    "hw_title": "Chapter 1",
+    "hw_subtitle": "Design Properties of Materials",
+    "category": "Design Properties of Materials",
+    "statement": "A 2-meter long steel rod with a cross-sectional area of $400\\text{ mm}^2$ is subjected to an axial tensile load of $80\\text{ kN}$. If $E = 200\\text{ GPa}$, calculate the total elongation $\\delta$.",
+    "targets": { "delta": 2.0 },
+    "required_units": ["mm"]
+  },
+  {
+    "id": "SM_1_3",
+    "hw_title": "Chapter 1",
+    "hw_subtitle": "Design Properties of Materials",
+    "category": "Design Properties of Materials",
+    "statement": "An aluminum bar is constrained between two rigid walls. If the temperature increases by $50^\\circ\\text{C}$, calculate the magnitude of the thermal stress $\\sigma$ induced. ($E = 70\\text{ GPa}$, $\\alpha = 23 \\times 10^{-6}/^\\circ\\text{C}$)",
+    "targets": { "sigma": 80.5 },
+    "required_units": ["MPa"]
+  },
+  {
+    "id": "SM_1_4",
+    "hw_title": "Chapter 1",
+    "hw_subtitle": "Design Properties of Materials",
+    "category": "Design Properties of Materials",
+    "statement": "A 10-mm diameter titanium specimen is pulled in tension. The axial strain is $0.002$. If $\\nu = 0.33$, calculate the absolute change in diameter $|\\Delta d|$.",
+    "targets": { "delta_d": 0.0066 },
+    "required_units": ["mm"]
   }
 ]
