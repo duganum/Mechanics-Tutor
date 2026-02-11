@@ -128,16 +128,31 @@ elif st.session_state.page == "lecture":
         elif lec_id == "SM_8":
             sig_x = st.slider("Normal Stress (σx) [MPa]", -500, 500, 100)
             sig_y = st.slider("Normal Stress (σy) [MPa]", -500, 500, 50)
-            # REVISED: Updated range and CCW instruction
             tau_xy = st.slider("Shear Stress (τxy) [MPa] (CCW is '-')", -100, 100, 40)
             
-            # Map values for the updated SM_8 renderer
+            # Calculations for results
+            center = (sig_x + sig_y) / 2
+            radius = np.sqrt(((sig_x - sig_y)/2)**2 + tau_xy**2)
+            sig_1 = center + radius
+            sig_2 = center - radius
+            theta_p = 0.5 * np.degrees(np.arctan2(2*tau_xy, sig_x - sig_y))
+            
+            # Update params for the renderer (Mohr's Circle only)
             params.update({
                 'P': sig_x, 
                 'sigma_y': sig_y, 
                 'tau_val': tau_xy
             }) 
-            st.metric("State of Stress", f"σx={sig_x}MPa, σy={sig_y}MPa, τxy={tau_xy}MPa")
+            
+            # Display Results as Metrics
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Principal σ₁", f"{sig_1:.1f} MPa")
+            m2.metric("Principal σ₂", f"{sig_2:.1f} MPa")
+            m3.metric("Max Shear τ", f"{radius:.1f} MPa")
+            
+            m4, m5 = st.columns(2)
+            m4.metric("Orientation θp", f"{theta_p:.1f}°")
+            m5.metric("Orientation θs", f"{(theta_p - 45):.1f}°")
 
         # Logic for SM_1, SM_2, SM_3
         else:
@@ -147,6 +162,7 @@ elif st.session_state.page == "lecture":
             params.update({'P': p_val, 'A': a_val, 'stress': stress})
             st.metric("Calculated Stress", f"{stress:.2f} MPa")
 
+        # The renderer will now only show the Mohr's Circle for SM_8
         st.image(render_lecture_visual(topic, params))
 
     # Right Column: Discussion
