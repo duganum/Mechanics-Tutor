@@ -112,9 +112,27 @@
     "hw_title": "Chapter 5",
     "hw_subtitle": "Stress Due to Bending",
     "category": "Stress Due to Bending",
-    "statement": "A simply supported beam spans a total length of 14 ft, supported by a pin at the left end and a roller at the right end. The beam is subjected to two 10-kip downward concentrated loads: one at 3 ft from the left support and one at 11 ft from the left support. Determine the magnitude of the maximum absolute bending moment $|M_{max}|$.",
-    "targets": { "M_max": 30.0 },
-    "required_units": ["kip-ft"]
+    "statement": "A simply supported beam ($L=14\\text{ ft}$) with point loads of 10 kips at 3 ft and 11 ft is made of a W12x16 steel bar ($S_x = 17.1\\text{ in}^3$). Calculate the maximum stress due to bending.",
+    "targets": { "sigma_max": 21.05 },
+    "required_units": ["ksi"]
+  },
+  {
+    "id": "SM_5_2",
+    "hw_title": "Chapter 5",
+    "hw_subtitle": "Stress Due to Bending",
+    "category": "Stress Due to Bending",
+    "statement": "A 14-ft simply supported beam has a 12-kip load at 3 ft, a 10-kip load at 10 ft, and a 2.5 k/ft UDL over the final 8 ft. Check if a W12x35 steel bar ($S_x = 45.6\\text{ in}^3$, $\\sigma_{allow} = 30\\text{ ksi}$) can support all loads.",
+    "targets": { "sigma_max": 21.79 },
+    "required_units": ["ksi"]
+  },
+  {
+    "id": "SM_5_3",
+    "hw_title": "Chapter 5",
+    "hw_subtitle": "Stress Due to Bending",
+    "category": "Stress Due to Bending",
+    "statement": "A 5.0m cantilever beam with a 60 kN/m UDL (first 3m), 30 kN load (at 2m), and 20 kN load (at free end) is an AISI 1020 hot-rolled steel cylinder bar ($\\sigma_y = 210\\text{ MPa}$). Determine the minimum diameter $d$ required to support the load with a factor of safety of 2.",
+    "targets": { "d_min": 346.5 },
+    "required_units": ["mm"]
   },
   {
     "id": "SM_6_1",
