@@ -85,8 +85,26 @@
     "hw_title": "Chapter 4",
     "hw_subtitle": "Shearing Forces and Bending Moments in Beams",
     "category": "Shearing Forces and Bending Moments in Beams",
-    "statement": "A $4\\text{-m}$ long simply supported beam carries a concentrated load of $10\\text{ kN}$ at its midspan. Determine the maximum bending moment $M_{max}$ occurring in the beam.",
-    "targets": { "M_max": 10.0 },
+    "statement": "A simply supported beam spans 14 ft with a pin at the left and roller at the right. It is loaded with two 10-kip downward forces at 3 ft and 11 ft from the left support. \n\n1. Calculate reaction forces and moment at supports.\n2. Determine magnitude and location of max absolute shear force.\n3. Determine magnitude and location of max absolute bending moment.\n4. Draw complete SFD and BMD.",
+    "targets": { "M_max": 30.0 },
+    "required_units": ["kip-ft"]
+  },
+  {
+    "id": "SM_4_2",
+    "hw_title": "Chapter 4",
+    "hw_subtitle": "Shearing Forces and Bending Moments in Beams",
+    "category": "Shearing Forces and Bending Moments in Beams",
+    "statement": "A simply supported 14-ft beam has a 12-kip load at 3 ft, a 10-kip load at 10 ft, and a 2.5 k/ft UDL over the final 8 ft (starting at 6 ft).\n\n1. Calculate reaction forces and moment at supports.\n2. Determine magnitude and location of max absolute shear force.\n3. Determine magnitude and location of max absolute bending moment.\n4. Draw complete SFD and BMD.",
+    "targets": { "R_left": 15.57 },
+    "required_units": ["kips"]
+  },
+  {
+    "id": "SM_4_3",
+    "hw_title": "Chapter 4",
+    "hw_subtitle": "Shearing Forces and Bending Moments in Beams",
+    "category": "Shearing Forces and Bending Moments in Beams",
+    "statement": "A 5.0m cantilever beam (fixed at left) has a 60 kN/m UDL over the first 3.0m, a 30 kN load at 2.0m, and a 20 kN load at the free end.\n\n1. Calculate reaction forces and moment at supports.\n2. Determine magnitude and location of max absolute shear force.\n3. Determine magnitude and location of max absolute bending moment.\n4. Draw complete SFD and BMD.",
+    "targets": { "M_fixed": 430.0 },
     "required_units": ["kNm"]
   },
   {
@@ -94,9 +112,9 @@
     "hw_title": "Chapter 5",
     "hw_subtitle": "Stress Due to Bending",
     "category": "Stress Due to Bending",
-    "statement": "A rectangular beam ($b=100\\text{ mm}, h=200\\text{ mm}$) is subjected to a bending moment of $20\\text{ kNm}$. Calculate the maximum bending stress $\\sigma_{max}$ at the top fibers.",
-    "targets": { "sigma_max": 30.0 },
-    "required_units": ["MPa"]
+    "statement": "A simply supported beam spans a total length of 14 ft, supported by a pin at the left end and a roller at the right end. The beam is subjected to two 10-kip downward concentrated loads: one at 3 ft from the left support and one at 11 ft from the left support. Determine the magnitude of the maximum absolute bending moment $|M_{max}|$.",
+    "targets": { "M_max": 30.0 },
+    "required_units": ["kip-ft"]
   },
   {
     "id": "SM_6_1",
