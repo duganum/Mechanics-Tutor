@@ -85,7 +85,7 @@ if st.session_state.page == "landing":
         
         display_probs = probs
         if cat_name == "Design Properties of Materials":
-            # UPDATED: Added SM_1_1 to the list so all 3 problems show up
+            # FIX: Included all 3 problems for Chapter 1
             chapter_1_ids = ["SM_1_1", "SM_1_2", "SM_1_3"]
             display_probs = [p for p in probs if p['id'] in chapter_1_ids]
         
@@ -114,32 +114,46 @@ elif st.session_state.page == "lecture":
     with col_sim:
         params = {'lec_id': lec_id}
         
-        # Function to handle complex directory structures
-        def find_and_display_image(filename):
-            paths_to_check = [
-                os.path.join("images", "HW 2 (direct stress)", "images", filename),
-                filename
-            ]
-            for path in paths_to_check:
-                if os.path.exists(path):
-                    st.image(path)
-                    return True
-            st.error(f"Error: {filename} not found in path: {paths_to_check[0]}")
+        # Directory logic for different chapters
+        img_dir_ch2 = "images/HW 2 (direct stress)/images"
+        img_dir_ch3 = "images/HW 3 (torsional shear stress)"
+        
+        def find_and_display_image(filename, dir_path):
+            full_path = os.path.join(dir_path, filename)
+            if os.path.exists(full_path):
+                st.image(full_path)
+                return True
+            # Fallback for local/relative path variations
+            if os.path.exists(filename):
+                st.image(filename)
+                return True
+            st.error(f"Error: {filename} not found in {dir_path}")
             return False
 
+        # CHAPTER 2 PROBLEM IMAGES
         if lec_id == "SM_2_1":
             st.info(st.session_state.current_prob['statement'])
-            find_and_display_image("1.png")
-            
+            find_and_display_image("1.png", img_dir_ch2)
         elif lec_id == "SM_2_2":
             st.info(st.session_state.current_prob['statement'])
-            find_and_display_image("2.png") 
-            
+            find_and_display_image("2.png", img_dir_ch2)
         elif lec_id == "SM_2_3":
             st.info(st.session_state.current_prob['statement'])
-            find_and_display_image("3.png") 
+            find_and_display_image("3.png", img_dir_ch2)
             
-        elif any(substring in lec_id for substring in ["SM_1_", "SM_3_", "SM_4_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
+        # CHAPTER 3 PROBLEM IMAGES
+        elif lec_id == "SM_3_1":
+            st.info(st.session_state.current_prob['statement'])
+            find_and_display_image("1.png", img_dir_ch3)
+        elif lec_id == "SM_3_2":
+            st.info(st.session_state.current_prob['statement'])
+            find_and_display_image("2.png", img_dir_ch3)
+        elif lec_id == "SM_3_3":
+            st.info(st.session_state.current_prob['statement'])
+            find_and_display_image("3.png", img_dir_ch3)
+            
+        # STANDARD RENDERING
+        elif any(substring in lec_id for substring in ["SM_1_", "SM_4_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
             st.info(st.session_state.current_prob['statement'])
             st.image(render_problem_diagram(st.session_state.current_prob))
         
@@ -182,16 +196,12 @@ elif st.session_state.page == "lecture":
     with col_side:
         st.subheader("💬 Socratic Discussion")
         if st.session_state.lecture_session is None:
-            # INJECT FULL PROBLEM CONTEXT INTO AGENT
-            prob_data = st.session_state.get('current_prob', {})
-            prob_stmt = prob_data.get('statement', 'No statement provided.')
-            
+            # Full context awareness
+            prob_stmt = st.session_state.get('current_prob', {}).get('statement', 'Lecture content.')
             sys_msg = (
                 f"You are Professor Dugan Um. Guide the student through: {topic}. "
-                f"The problem statement is: {prob_stmt}. "
-                "Use Socratic questioning. Do not provide direct answers unless prompted after several attempts."
+                f"Context: {prob_stmt}. Use Socratic questioning to guide derivations."
             )
-            
             initial_greeting = f"Hello! Let's analyze {topic}. How would you start the derivation?"
             st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
                 {"role": "model", "parts": [initial_greeting]}
