@@ -113,16 +113,26 @@ elif st.session_state.page == "lecture":
     with col_sim:
         params = {'lec_id': lec_id}
         
-        # REVISED: Specific image handling for SM_2 problems
+        # REVISED: Specific image handling with correct path and safety check
+        img_dir = "HW 2 (direct stres)/images"
+        
         if lec_id == "SM_2_1":
             st.info(st.session_state.current_prob['statement'])
-            st.image("1.png") # Uses image '1' from your directory
+            img_path = os.path.join(img_dir, "1.png")
+            if os.path.exists(img_path): st.image(img_path)
+            else: st.error(f"Image not found at {img_path}")
+            
         elif lec_id == "SM_2_2":
             st.info(st.session_state.current_prob['statement'])
-            st.image("image_d1f503.png") # Alloy selection image
+            img_path = os.path.join(img_dir, "image_d1f503.png")
+            if os.path.exists(img_path): st.image(img_path)
+            else: st.error(f"Image not found at {img_path}")
+            
         elif lec_id == "SM_2_3":
             st.info(st.session_state.current_prob['statement'])
-            st.image("image_d1f598.png") # Thermal expansion bars image
+            img_path = os.path.join(img_dir, "image_d1f598.png")
+            if os.path.exists(img_path): st.image(img_path)
+            else: st.error(f"Image not found at {img_path}")
             
         # Standard rendering for other Problem-based IDs
         elif any(substring in lec_id for substring in ["SM_1_", "SM_3_", "SM_4_", "SM_5_", "SM_6_", "SM_7_", "SM_8_"]):
