@@ -116,7 +116,7 @@ elif st.session_state.page == "lecture":
         # Directory mapping for all chapters
         img_dir_ch2 = "images/HW 2 (direct stress)/images"
         img_dir_ch3 = "images/HW 3 (torsional shear stress)"
-        img_dir_ch4 = "images/HW 4 (SFD & BMD)" # HW 4 and HW 5 share same images
+        img_dir_ch4 = "images/HW 4 (SFD & BMD)"
         
         def find_and_display_image(filename, dir_path):
             full_path = os.path.join(dir_path, filename)
@@ -151,7 +151,7 @@ elif st.session_state.page == "lecture":
             st.info(st.session_state.current_prob['statement'])
             find_and_display_image("3.png", img_dir_ch3)
 
-        # CHAPTER 4 MAPPING (Shearing forces and bending moments)
+        # CHAPTER 4 MAPPING
         elif lec_id == "SM_4_1":
             st.info(st.session_state.current_prob['statement'])
             find_and_display_image("1.png", img_dir_ch4)
@@ -162,7 +162,7 @@ elif st.session_state.page == "lecture":
             st.info(st.session_state.current_prob['statement'])
             find_and_display_image("3.png", img_dir_ch4)
 
-        # CHAPTER 5 MAPPING (Stress due to bending - using same HW4 images)
+        # CHAPTER 5 MAPPING
         elif lec_id == "SM_5_1":
             st.info(st.session_state.current_prob['statement'])
             find_and_display_image("1.png", img_dir_ch4)
@@ -173,12 +173,10 @@ elif st.session_state.page == "lecture":
             st.info(st.session_state.current_prob['statement'])
             find_and_display_image("3.png", img_dir_ch4)
             
-        # STANDARD RENDERING FOR OTHER PROBLEMS
         elif any(substring in lec_id for substring in ["SM_1_", "SM_6_", "SM_7_", "SM_8_"]):
             st.info(st.session_state.current_prob['statement'])
             st.image(render_problem_diagram(st.session_state.current_prob))
         
-        # Standard Simulation Logic for Lecture IDs
         elif lec_id in ["SM_4", "SM_5", "SM_6", "SM_7"]:
             p_val = st.slider("Force Magnitude (P) [kN]", 1, 100, 22)
             l_pos = st.slider("Force Location (L_pos)", 0, 1000, 500)
@@ -236,8 +234,16 @@ elif st.session_state.page == "lecture":
         with st.form("lecture_chat_form", clear_on_submit=True):
             lecture_input = st.text_input("Discuss results...", placeholder="Type here...")
             if st.form_submit_button("Submit Message") and lecture_input:
-                st.session_state.lecture_session.send_message(lecture_input)
-                st.rerun()
+                # ERROR HANDLING FOR RATE LIMITS / API ISSUES
+                try:
+                    with st.spinner("Professor Um is thinking..."):
+                        st.session_state.lecture_session.send_message(lecture_input)
+                    st.rerun()
+                except Exception as e:
+                    if "429" in str(e) or "quota" in str(e).lower():
+                        st.error("The Professor is currently busy (Rate Limit Reached). Please wait a moment before trying again.")
+                    else:
+                        st.error(f"An error occurred: {e}")
 
     st.markdown("---")
     st.subheader("📝 Session Analysis")
