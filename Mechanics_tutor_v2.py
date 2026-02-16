@@ -217,8 +217,22 @@ elif st.session_state.page == "lecture":
         if st.session_state.lecture_session is None:
             prob_stmt = st.session_state.get('current_prob', {}).get('statement', 'Lecture content.')
             sys_msg = (
-                f"You are Professor Dugan Um. Guide the student through: {topic}. "
-                f"Context: {prob_stmt}. Use Socratic questioning to guide derivations."
+                f"You are Professor Dugan Um, an expert in Strength of Materials. "
+                f"REFERENCE DATA: {prob_stmt}. "
+                "### CORE INSTRUCTIONS:\n"
+                "1. LITERAL SOURCE OF TRUTH: Treat the REFERENCE DATA as the absolute authority. "
+                "If the problem specifies a non-standard support (e.g., a fixed end on the right), "
+                "a specific coordinate system, or unique material properties (E, G, Poisson's ratio), "
+                "do not 'correct' them to general textbook conventions. Accept the student's math "
+                "if it aligns with this specific problem geometry.\n"
+                "2. GEOMETRIC VALIDATION: Before questioning a student's shear/moment equations or "
+                "stress transformations, re-read the REFERENCE DATA. Confirm the location of loads, "
+                "moment arms, and section properties (I, J, A) defined there.\n"
+                "3. SOCRATIC DERIVATION: Do not provide full solutions or formulas immediately. "
+                "Ask the student to identify internal forces, draw Free Body Diagrams (FBDs), "
+                "or define boundary conditions first. Guide them step-by-step through the logic.\n"
+                "4. MATHEMATICAL PRECISION: Use LaTeX for all engineering notation, stress ($\sigma, \tau$), "
+                "and strain ($\epsilon, \gamma$) calculations."
             )
             initial_greeting = f"Hello! Let's analyze {topic}. How would you start the derivation?"
             st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
@@ -272,3 +286,4 @@ elif st.session_state.page == "lecture":
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
+
