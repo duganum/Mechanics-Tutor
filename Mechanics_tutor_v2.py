@@ -4,6 +4,7 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from google.api_core import exceptions  # Added for robust rate limit handling
 
 # Import custom tools - Ensure these files are in the same folder
 from logic_v2_GitHub import get_gemini_model, load_problems, check_numeric_match, analyze_and_send_report
@@ -221,43 +222,38 @@ elif st.session_state.page == "lecture":
                 f"REFERENCE DATA: {prob_stmt}. "
                 "### CORE INSTRUCTIONS:\n"
                 "1. LITERAL SOURCE OF TRUTH: Treat the REFERENCE DATA as the absolute authority. "
-                "If the problem specifies a non-standard support (e.g., a fixed end on the right), "
-                "a specific coordinate system, or unique material properties (E, G, Poisson's ratio), "
-                "do not 'correct' them to general textbook conventions. Accept the student's math "
-                "if it aligns with this specific problem geometry.\n"
-                "2. GEOMETRIC VALIDATION: Before questioning a student's shear/moment equations or "
-                "stress transformations, re-read the REFERENCE DATA. Confirm the location of loads, "
-                "moment arms, and section properties (I, J, A) defined there.\n"
-                "3. SOCRATIC DERIVATION: Do not provide full solutions or formulas immediately. "
-                "Ask the student to identify internal forces, draw Free Body Diagrams (FBDs), "
-                "or define boundary conditions first. Guide them step-by-step through the logic.\n"
-                "4. MATHEMATICAL PRECISION: Use LaTeX for all engineering notation, stress ($\sigma, \tau$), "
-                "and strain ($\epsilon, \gamma$) calculations."
+                "If the problem specifies non-standard setups, do not 'correct' it.\n"
+                "2. GEOMETRIC VALIDATION: Before questioning math, re-read the REFERENCE DATA geometry.\n"
+                "3. SOCRATIC DERIVATION: Do not provide solutions. Guide step-by-step.\n"
+                "4. MATH: Use LaTeX for all engineering notation."
             )
             initial_greeting = f"Hello! Let's analyze {topic}. How would you start the derivation?"
-            st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
-                {"role": "model", "parts": [initial_greeting]}
-            ])
-        
+            try:
+                st.session_state.lecture_session = get_gemini_model(sys_msg).start_chat(history=[
+                    {"role": "model", "parts": [initial_greeting]}
+                ])
+            except Exception as e:
+                st.error(f"Failed to initialize Tutor: {e}")
+
         chat_container = st.container(height=450)
         with chat_container:
-            for msg in st.session_state.lecture_session.history:
-                with st.chat_message("assistant" if msg.role == "model" else "user"):
-                    st.markdown(msg.parts[0].text)
+            if st.session_state.lecture_session:
+                for msg in st.session_state.lecture_session.history:
+                    with st.chat_message("assistant" if msg.role == "model" else "user"):
+                        st.markdown(msg.parts[0].text)
 
         with st.form("lecture_chat_form", clear_on_submit=True):
             lecture_input = st.text_input("Discuss results...", placeholder="Type here...")
             if st.form_submit_button("Submit Message") and lecture_input:
-                # ERROR HANDLING FOR RATE LIMITS / API ISSUES
                 try:
-                    with st.spinner("Professor Um is thinking..."):
-                        st.session_state.lecture_session.send_message(lecture_input)
-                    st.rerun()
+                    if st.session_state.lecture_session:
+                        with st.spinner("Professor Um is thinking..."):
+                            st.session_state.lecture_session.send_message(lecture_input)
+                        st.rerun()
+                except exceptions.ResourceExhausted:
+                    st.error("⚠️ System limit reached. Please wait 60 seconds before trying again.")
                 except Exception as e:
-                    if "429" in str(e) or "quota" in str(e).lower():
-                        st.error("The Professor is currently busy (Rate Limit Reached). Please wait a moment before trying again.")
-                    else:
-                        st.error(f"An error occurred: {e}")
+                    st.error(f"Tutor Error: {e}")
 
     st.markdown("---")
     st.subheader("📝 Session Analysis")
@@ -279,11 +275,12 @@ elif st.session_state.page == "lecture":
                         st.success("Analysis emailed to Dr. Um!")
                         st.session_state.page = "landing"
                         st.rerun()
+                    except exceptions.ResourceExhausted:
+                        st.error("Rate limit hit during reporting. Please wait a minute.")
                     except Exception as e:
-                        st.error(f"Error: {e}")
+                        st.error(f"Analysis Error: {e}")
 
     with col_exit:
         if st.button("🏠 Exit to Menu", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
-
